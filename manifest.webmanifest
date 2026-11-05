@@ -1,7 +1,7 @@
 {
-  "name": "Treino ABCD",
-  "short_name": "Treino",
-  "description": "Treino ABCD com registro de séries, progresso de peso e diário de proteína e água.",
+  "name": "Treino Diário",
+  "short_name": "Treino Diário",
+  "description": "Treino Diário com registro de séries, progresso de peso e diário de proteína e água.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
