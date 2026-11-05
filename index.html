@@ -180,6 +180,39 @@ details.hx summary{cursor:pointer;font-weight:700;color:var(--c1);min-height:44p
 .tabbar button{border:0;background:transparent;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 2px;border-radius:22px;font:700 .68rem var(--body);min-height:56px;cursor:pointer}
 .tabbar button[aria-selected="true"]{color:var(--c1);background:var(--tint1)}
 .foot{color:var(--muted);font-size:.8rem;margin:0}
+/* celebração ao finalizar */
+.fin{position:fixed;inset:0;z-index:60;display:grid;place-items:center;padding:24px;background:rgba(4,10,12,.82);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);overflow:hidden}
+.fin-box{position:relative;z-index:2;width:min(100%,380px);text-align:center;display:flex;flex-direction:column;align-items:center;gap:14px;background:var(--surface);border:1px solid var(--line);border-radius:30px;padding:28px 22px;box-shadow:var(--shadow)}
+.fin-ring{width:132px;height:132px}
+.fin-ring circle,.fin-ring path{fill:none;stroke-linecap:round;stroke-linejoin:round}
+.fin-ring .a{stroke:var(--c3);stroke-dasharray:1;stroke-dashoffset:1}
+.fin-ring .b{stroke:var(--c2);stroke-dasharray:1;stroke-dashoffset:1}
+.fin-ring .c{stroke:var(--c1);stroke-dasharray:1;stroke-dashoffset:1}
+.fin-ring .ck{stroke:var(--fg);stroke-dasharray:1;stroke-dashoffset:1}
+.fin h2{margin:0;font-weight:800;font-size:1.7rem;line-height:1.1;letter-spacing:-.02em;text-wrap:balance}
+.fin p{margin:0;color:var(--muted);font-weight:600;text-wrap:balance}
+.fin-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;width:100%}
+.fin-stats div{background:var(--surface2);border-radius:14px;padding:8px 4px}
+.fin-stats b{display:block;font-family:var(--display);font-weight:600;font-size:1.6rem;line-height:1.1}
+.fin-stats small{color:var(--muted);font-size:.72rem;font-weight:600}
+.conf{position:absolute;top:-14px;width:9px;height:15px;border-radius:2px;opacity:0;pointer-events:none}
+.fin-done{background:var(--tint1);border-radius:20px;padding:14px 16px;font-weight:700;color:var(--c1);display:flex;justify-content:space-between;align-items:center;gap:10px}
+@media (prefers-reduced-motion:no-preference){
+  .fin{animation:finin .3s ease-out}
+  .fin-box{animation:finpop .55s cubic-bezier(.2,1.3,.4,1)}
+  .fin-ring .a{animation:draw 1s .25s ease-out forwards}
+  .fin-ring .b{animation:draw 1s .45s ease-out forwards}
+  .fin-ring .c{animation:draw 1s .65s ease-out forwards}
+  .fin-ring .ck{animation:draw .5s 1.45s ease-out forwards}
+  .conf{animation:fall linear forwards}
+}
+@media (prefers-reduced-motion:reduce){
+  .fin-ring .a,.fin-ring .b,.fin-ring .c,.fin-ring .ck{stroke-dashoffset:0}
+}
+@keyframes draw{to{stroke-dashoffset:0}}
+@keyframes finin{from{opacity:0}to{opacity:1}}
+@keyframes finpop{from{transform:scale(.8) translateY(20px);opacity:0}to{transform:none;opacity:1}}
+@keyframes fall{0%{opacity:1;transform:translate3d(0,0,0) rotate(0)}100%{opacity:.9;transform:translate3d(var(--dx),110vh,0) rotate(var(--rot))}}
 [hidden]{display:none!important}
 @media (prefers-reduced-motion:no-preference){.dial path,.dial circle{transition:stroke .25s}}
 </style>
@@ -285,6 +318,8 @@ details.hx summary{cursor:pointer;font-weight:700;color:var(--c1);min-height:44p
   <p class="foot">Dados salvos neste aparelho. No celular, use "Adicionar à tela inicial" para abrir como app, inclusive sem internet.</p>
 </div>
 
+<div class="fin" id="fin" hidden role="dialog" aria-modal="true" aria-labelledby="fint"></div>
+
 <div class="timer" id="timer" hidden role="timer" aria-live="off">
   <div><small>Descanso</small><br><b id="tleft">00:00</b></div>
   <div class="chips"><button class="btn" id="tplus" type="button">+30 s</button><button class="btn" id="tstop" type="button">Parar</button></div>
@@ -356,7 +391,7 @@ function longDate(s){var d=parse(s);return WD[d.getDay()]+", "+d.getDate()+" "+M
 /* ---------- estado ---------- */
 var KEY="treino.v2";
 var S=(function(){
-  var d={logs:{},cardio:{},body:[],bio:[],daily:{},goals:{prot:160,water:3000},plan:null,seeded:false};
+  var d={logs:{},cardio:{},body:[],bio:[],daily:{},goals:{prot:160,water:3000},plan:null,seeded:false,done:{}};
   try{var r=JSON.parse(localStorage.getItem(KEY));if(r&&typeof r==="object"){for(var k in d)if(r[k]!==undefined)d[k]=r[k]}}catch(e){}
   if(!d.seeded){ // pesos informados pelo Gabriel: 20/08, 25/09 e 05/11 (só entram uma vez, se não houver medidas)
     if(!d.body.length)d.body=[{d:"2026-08-20",kg:104.5},{d:"2026-09-25",kg:99.6},{d:"2026-11-05",kg:91.4}];
@@ -621,8 +656,38 @@ function renderDay(){
     h+='<details class="hx"><summary>Histórico</summary>'+histHtml(ex)+'</details></article>';
   });
   h+='<label class="cardio"><input type="checkbox" id="cardio"'+(S.cardio[curDate+":"+d.k]?" checked":"")+'><span>'+esc(d.cardio)+' (depois da musculação)</span></label>';
+  var fk=curDate+":"+d.k,fd=S.done&&S.done[fk];
+  h+=fd?'<div class="fin-done"><span>Treino finalizado ✓</span><button class="btn ghost sm" type="button" data-finish>Ver parabéns</button></div>':'<button class="btn" type="button" data-finish style="min-height:54px;font-size:1.05rem">Finalizar treino</button>';
   $("#day").innerHTML=h;
 }
+
+/* celebração ao finalizar o treino */
+var PHRASES=["Treino feito. Cada repetição de hoje aproxima você do 85 e do altar.","Disciplina vence motivação. Hoje você provou isso.","Mais um treino no bolso. Quem aparece todo dia, chega lá.","Corpo trabalhado, meta mais perto. Parabéns, Gabriel!","Você fez o que precisava ser feito. Descanse, coma bem e volte mais forte.","Constância é o que muda o corpo. Mais um dia de constância cumprido.","Ninguém faz por você, e você fez. Orgulho do esforço de hoje!"];
+function dayStats(){
+  var d=getDays()[curDay],sets=0,vol=0,ex=0;
+  d.ex.forEach(function(x){var e=entry(x.id,false);if(!hasReps(e))return;ex++;
+    e.sets.slice(0,x.s).forEach(function(s){if(s&&s[1]){sets++;if(s[0])vol+=s[0]*s[1]}})});
+  return {ex:ex,sets:sets,vol:Math.round(vol)};
+}
+function celebrate(){
+  var st=dayStats(),box=$("#fin"),D=getDays(),wk=Math.min(weekCount(),D.length);
+  var ph=PHRASES[Math.floor(Math.random()*PHRASES.length)],cols=["#3ddbc0","#8b9cff","#f5b04c","#ff8a73","#eef4f3"],cf="";
+  for(var i=0;i<42;i++)cf+='<i class="conf" style="left:'+Math.round(Math.random()*100)+'%;background:'+cols[i%5]+';--dx:'+Math.round(Math.random()*160-80)+'px;--rot:'+Math.round(Math.random()*720-360)+'deg;animation-duration:'+(2.2+Math.random()*2).toFixed(2)+'s;animation-delay:'+(Math.random()*1.2).toFixed(2)+'s"></i>';
+  box.innerHTML=cf+'<div class="fin-box"><svg class="fin-ring" viewBox="0 0 120 120" aria-hidden="true">'+
+    '<circle class="a" cx="60" cy="60" r="54" stroke-width="8" pathLength="1" transform="rotate(-90 60 60)"/>'+
+    '<circle class="b" cx="60" cy="60" r="42" stroke-width="8" pathLength="1" transform="rotate(-90 60 60)"/>'+
+    '<circle class="c" cx="60" cy="60" r="30" stroke-width="8" pathLength="1" transform="rotate(-90 60 60)"/>'+
+    '<path class="ck" d="M48 61l8 8 16-17" stroke-width="6" pathLength="1"/></svg>'+
+    '<h2 id="fint">Treino finalizado!</h2><p>'+esc(ph)+'</p>'+
+    '<div class="fin-stats"><div><b>'+st.ex+'</b><small>exercícios</small></div><div><b>'+st.sets+'</b><small>séries</small></div><div><b>'+(st.vol>=1000?fmt(st.vol/1000,1)+' t':st.vol+' kg')+'</b><small>volume</small></div></div>'+
+    '<p>'+wk+' de '+D.length+' treinos nesta semana.</p>'+
+    '<button class="btn" type="button" id="finx" style="width:100%">Fechar</button></div>';
+  box.hidden=false;
+  try{if(navigator.vibrate)navigator.vibrate([120,60,120,60,220])}catch(e){}
+  setTimeout(function(){var b=$("#finx");if(b)b.focus()},50);
+}
+$("#fin").addEventListener("click",function(ev){if(ev.target.id==="finx"||ev.target===this){this.hidden=true}});
+document.addEventListener("keydown",function(ev){if(ev.key==="Escape")$("#fin").hidden=true});
 
 /* editor do treino */
 var resetArm=false;
@@ -693,6 +758,12 @@ $("#day").addEventListener("click",function(ev){
     if(t.closest("[data-done]")){editing=false;resetArm=false;renderDay();toTop();return}
     if(t.closest("[data-reset]")){if(resetArm){S.plan=null;save();resetArm=false;editing=false;renderDay()}else{resetArm=true;renderEditor()}return}
     return;
+  }
+  if(t.closest("[data-finish]")){
+    var fk2=curDate+":"+getDays()[curDay].k;
+    if(!S.done)S.done={};
+    if(!S.done[fk2]){S.done[fk2]=Date.now();save();renderDay()}
+    celebrate();return;
   }
   if((b=t.closest("[data-ok]"))){
     var e=entry(b.dataset.k,true),i2=+b.dataset.i;
@@ -870,7 +941,7 @@ $("#bimp").addEventListener("change",function(ev){
     try{
       var o=JSON.parse(rd.result);
       if(!o||typeof o!=="object"||!o.logs||!Array.isArray(o.body))throw new Error("formato");
-      ["logs","cardio","body","bio","daily","goals","plan"].forEach(function(k){if(o[k]!==undefined)S[k]=o[k]});
+      ["logs","cardio","body","bio","daily","goals","plan","done"].forEach(function(k){if(o[k]!==undefined)S[k]=o[k]});
       if(!Array.isArray(S.bio))S.bio=[];
       S.seeded=true;save();editing=false;renderDay();renderProg();renderHoje();m.textContent="Backup importado.";
     }catch(e){m.textContent="Arquivo inválido. Use um backup exportado por esta página."}
