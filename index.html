@@ -278,8 +278,13 @@ function byDate(a,b){return a.d<b.d?-1:1}
 /* ---------- estado ---------- */
 var KEY="treino.v2";
 var S=(function(){
-  var d={logs:{},cardio:{},body:[],bio:[],daily:{},goals:{prot:160,water:3000},plan:null};
+  var d={logs:{},cardio:{},body:[],bio:[],daily:{},goals:{prot:160,water:3000},plan:null,seeded:false};
   try{var r=JSON.parse(localStorage.getItem(KEY));if(r&&typeof r==="object"){for(var k in d)if(r[k]!==undefined)d[k]=r[k]}}catch(e){}
+  if(!d.seeded){ // pesos informados pelo Gabriel: 20/08, 25/09 e 05/11 (só entram uma vez, se não houver medidas)
+    if(!d.body.length)d.body=[{d:"2026-08-20",kg:104.5},{d:"2026-09-25",kg:99.6},{d:"2026-11-05",kg:91.4}];
+    d.seeded=true;
+    try{localStorage.setItem(KEY,JSON.stringify(d))}catch(e){}
+  }
   return d;
 })();
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
