@@ -1203,6 +1203,7 @@ var AKEY="treino.accounts";
 function accs(){var a=[];try{a=JSON.parse(localStorage.getItem(AKEY))||[]}catch(e){}return a}
 function putAccs(a){try{localStorage.setItem(AKEY,JSON.stringify(a))}catch(e){}}
 function addAcc(p){var a=accs().filter(function(x){return x.id!==p.id});a.push({id:p.id,name:p.name,pin:p.pin});putAccs(a)}
+function hasData(){return Object.keys(S.logs).length||Object.keys(S.cardio).length||S.body.length||Object.keys(S.daily).length||Object.keys(S.done||{}).length||!!S.plan}
 function snapAcc(){if(!prof)return;try{localStorage.setItem("treino.acc."+prof.id,JSON.stringify(S))}catch(e){}}
 function blankS(){
   var d={logs:{},cardio:{},body:[],bio:[],daily:{},goals:{prot:160,water:3000},plan:null,seeded:false,done:{},mute:false,updatedAt:0,cfg:null},k;
@@ -1234,6 +1235,8 @@ function removeAcc(id){
   if(prof&&prof.id===id){
     if(rest.length){prof=null;return switchTo(rest[0].id)}
     prof=null;try{localStorage.removeItem(PKEY)}catch(e){}sync.board=[];sync.st="off";
+    blankS();var an=null;try{an=JSON.parse(localStorage.getItem("treino.anon"))}catch(e){}if(an)for(var k in S)if(an[k]!==undefined&&k!=="mute")S[k]=an[k];
+    try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}
   }
   renderAll();return Promise.resolve();
 }
@@ -1266,7 +1269,13 @@ function doLogin(name,pin,tpl){
   if(String(pin).length<6)return Promise.reject(new Error("O PIN precisa ter 6 ou mais caracteres."));
   return post({a:"login",p:id,pin:pin,nome:name.trim().slice(0,40)}).then(function(r){
     if(!r.ok)throw new Error(r.erro||"erro");
-    if(prof&&prof.id!==id){push();snapAcc();blankS()} // adicionando outra conta: guarda a atual e começa limpo
+    if(!prof||prof.id!==id){ // troca de identidade: guarda a atual e começa limpo, nunca mistura dados
+      if(prof){push();snapAcc()}
+      else if(!accs().length&&hasData()){try{localStorage.setItem("treino.anon",JSON.stringify(S))}catch(e){}}
+      var own=null;try{own=JSON.parse(localStorage.getItem("treino.acc."+id))}catch(e){}
+      var anon=null;if(r.novo&&id==="gabriel"){try{anon=JSON.parse(localStorage.getItem("treino.anon"))}catch(e){}}
+      blankS();var src=own||anon;if(src)for(var kk in S)if(src[kk]!==undefined&&kk!=="mute")S[kk]=src[kk];
+    }
     prof={id:id,name:name.trim().slice(0,40),pin:String(pin)};
     try{localStorage.setItem(PKEY,JSON.stringify(prof))}catch(e){}
     addAcc(prof);
