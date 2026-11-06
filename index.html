@@ -238,8 +238,16 @@ details.guide summary{color:var(--c3)}
 .crown{color:var(--c3);font-weight:800;font-size:.78rem}
 .hist .li b{font-family:var(--display);font-weight:600;font-size:1.15rem}
 .win{color:var(--c3)}
-.tabbar.five{grid-template-columns:repeat(5,1fr)}
-.tabbar.five button{font-size:.62rem}
+.av{width:22px;height:22px;border-radius:50%;border:1.8px solid currentColor;display:grid;place-items:center;font:700 .66rem var(--body);line-height:1}
+.av.big{width:56px;height:56px;border-width:2px;font-size:1.4rem;background:var(--tint1);color:var(--c1)}
+.seg.sub{grid-template-columns:repeat(3,1fr);margin-bottom:12px}
+.seg.sub button{border:0;background:transparent;color:var(--fg);border-radius:15px;padding:10px 4px;min-height:44px;font:700 .85rem var(--body);cursor:pointer}
+.seg.sub button[aria-selected="true"]{background:var(--c1);color:var(--ink)}
+.acc{display:flex;align-items:center;gap:12px;padding:10px 0;border-top:1px solid var(--line)}
+.acc:first-of-type{border-top:0}
+.acc .av{width:38px;height:38px;font-size:1rem;flex:none}
+.acc .nm{flex:1;min-width:0;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.acc .nm small{display:block;color:var(--muted);font-weight:600;font-size:.75rem}
 [hidden]{display:none!important}
 @media (prefers-reduced-motion:no-preference){.dial path,.dial circle{transition:stroke .25s}}
 </style>
@@ -322,6 +330,11 @@ details.guide summary{color:var(--c3)}
     <div id="pldyn" class="view"></div>
   </section>
 
+  <!-- CONTAS -->
+  <section id="v-contas" class="view" hidden>
+    <div id="acdyn" class="view"></div>
+  </section>
+
   <!-- CRONÔMETRO -->
   <section id="v-cron" class="view" hidden>
     <div class="card swc" id="sw">
@@ -365,12 +378,11 @@ details.guide summary{color:var(--c3)}
   <div class="chips"><button class="btn" id="tplus" type="button">+30 s</button><button class="btn" id="tstop" type="button">Parar</button></div>
 </div>
 
-<nav class="tabbar five" id="main" role="tablist" aria-label="Seções do app">
+<nav class="tabbar" id="main" role="tablist" aria-label="Seções do app">
   <button role="tab" data-v="treino" aria-selected="true"><svg viewBox="0 0 24 24"><path d="M6.5 6.5v11M17.5 6.5v11M3.5 9v6M20.5 9v6M6.5 12h11"/></svg>Treino</button>
   <button role="tab" data-v="progresso" aria-selected="false"><svg viewBox="0 0 24 24"><path d="M4 4v16h16M8 15l3-4 3 2.5 5-6"/></svg>Progresso</button>
   <button role="tab" data-v="hoje" aria-selected="false"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.3"/></svg>Hoje</button>
-  <button role="tab" data-v="placar" aria-selected="false"><svg viewBox="0 0 24 24"><path d="M8 4h8v5a4 4 0 01-8 0V4zM8 6H5v1a3 3 0 003 3M16 6h3v1a3 3 0 01-3 3M12 13v4M8.5 20h7M10 17h4"/></svg>Placar</button>
-  <button role="tab" data-v="cron" aria-selected="false"><svg viewBox="0 0 24 24"><circle cx="12" cy="13.5" r="7.5"/><path d="M12 13.5V9.5M9.5 3.5h5M12 3.5V6"/></svg>Cronômetro</button>
+  <button role="tab" data-v="perfil" aria-selected="false"><span class="av" id="avtab" aria-hidden="true">•</span>Perfil</button>
 </nav>
 
 <script>
@@ -709,7 +721,7 @@ function updHead(){
     ti.textContent=editing?"Editar treino":d.t;
     dl.textContent=(d.home?"Em casa":"Dia "+d.k)+" · "+longDate(curDate)+(curDate!==today()?" (retroativo)":"");
   }else{
-    ti.textContent={progresso:"Progresso",hoje:"Hoje",placar:"Placar",cron:"Cronômetro"}[curView];
+    ti.textContent={progresso:"Progresso",hoje:"Hoje",placar:"Placar",cron:"Cronômetro",contas:"Perfil"}[curView];
     dl.textContent=longDate(today());
   }
   $("#editbtn").hidden=!(curView==="treino"&&!editing);
@@ -1148,7 +1160,7 @@ function streakAt(d){
 }
 function scoreObj(d){var r=rawScore(d),st=streakAt(d),bonus=r.pts>0?Math.min(SC.streakMax,st*SC.streak):0;return {d:d,pts:r.pts+bonus,det:r.det+(bonus?" B"+bonus:"")}}
 function post(o){return fetch(API,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(o)}).then(function(r){return r.json()})}
-function setSync(st,msg){sync.st=st;sync.msg=msg||"";if(st==="ok")sync.at=Date.now();if(curView==="placar")renderPlacar()}
+function setSync(st,msg){sync.st=st;sync.msg=msg||"";if(st==="ok")sync.at=Date.now();if(curView==="placar")renderPlacar();if(curView==="contas")renderContas()}
 function schedPush(){if(!prof)return;clearTimeout(sync.timer);sync.timer=setTimeout(push,2500)}
 function push(){
   if(!prof)return Promise.resolve();
@@ -1179,10 +1191,71 @@ function fetchBoard(){
   if(!prof)return Promise.resolve();
   var t=new Date(),since=iso(new Date(t.getFullYear(),t.getMonth(),t.getDate()-14));
   return post({a:"board",p:prof.id,pin:prof.pin,since:since}).then(function(r){
-    if(r.ok){sync.board=r.rows;sync.bt=Date.now()}if(curView==="placar")renderPlacar();
+    if(r.ok){sync.board=r.rows;sync.bt=Date.now()}if(curView==="placar")renderPlacar();if(curView==="contas")renderContas();
   }).catch(function(){});
 }
 function slug(n){return String(n||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]/g,"").slice(0,30)}
+/* ---------- contas neste aparelho (trocar entre perfis) ---------- */
+var AKEY="treino.accounts";
+function accs(){var a=[];try{a=JSON.parse(localStorage.getItem(AKEY))||[]}catch(e){}return a}
+function putAccs(a){try{localStorage.setItem(AKEY,JSON.stringify(a))}catch(e){}}
+function addAcc(p){var a=accs().filter(function(x){return x.id!==p.id});a.push({id:p.id,name:p.name,pin:p.pin});putAccs(a)}
+function snapAcc(){if(!prof)return;try{localStorage.setItem("treino.acc."+prof.id,JSON.stringify(S))}catch(e){}}
+function blankS(){
+  var d={logs:{},cardio:{},body:[],bio:[],daily:{},goals:{prot:160,water:3000},plan:null,seeded:false,done:{},mute:false,updatedAt:0,cfg:null},k;
+  var mute=S.mute;for(k in S)delete S[k];for(k in d)S[k]=d[k];S.mute=mute;
+}
+function addAcc_boot(){if(prof&&!accs().some(function(x){return x.id===prof.id}))addAcc(prof)}
+function initial(n){return String(n||"?").trim().charAt(0).toUpperCase()||"?"}
+function renderAvatar(){var a=$("#avtab");if(a)a.textContent=prof?initial(prof.name):"•"}
+function renderAll(){
+  curDay=suggestDay().di;editing=false;renderDay();renderProg();renderHoje();updHead();renderAvatar();
+  if($("#gk"))$("#gk").value=goalKg()?String(goalKg()).replace(".",","):"";
+  if(curView==="placar")renderPlacar();if(curView==="contas")renderContas();
+}
+function switchTo(id){
+  var a=accs().filter(function(x){return x.id===id})[0];
+  if(!a||(prof&&prof.id===id))return Promise.resolve();
+  if(prof){push();snapAcc()}
+  var raw=null;try{raw=JSON.parse(localStorage.getItem("treino.acc."+id))}catch(e){}
+  blankS();if(raw)for(var k in S)if(raw[k]!==undefined)S[k]=raw[k];
+  prof={id:a.id,name:a.name,pin:a.pin};
+  try{localStorage.setItem(PKEY,JSON.stringify(prof));localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}
+  sync.board=[];sync.st="idle";sync.bt=0;
+  renderAll();
+  return pull().then(fetchBoard);
+}
+function removeAcc(id){
+  var rest=accs().filter(function(x){return x.id!==id});putAccs(rest);
+  try{localStorage.removeItem("treino.acc."+id)}catch(e){}
+  if(prof&&prof.id===id){
+    if(rest.length){prof=null;return switchTo(rest[0].id)}
+    prof=null;try{localStorage.removeItem(PKEY)}catch(e){}sync.board=[];sync.st="off";
+  }
+  renderAll();return Promise.resolve();
+}
+function loginForm(){
+  return '<form id="plogin" class="row"><label for="pn">Nome<input type="text" id="pn" maxlength="40" autocomplete="off" placeholder="ex.: Gabriel"></label><label for="pp">PIN<input type="password" id="pp" autocomplete="off" placeholder="6+ caracteres"></label>'+
+    '<label for="pt">Treino inicial (só no primeiro acesso)<select id="pt"><option value="auto">Automático pelo nome</option><option value="m">Masculino (ABCD + casa)</option><option value="f">Feminino (ABCD + casa)</option></select></label><button class="btn" type="submit">Entrar</button></form><p class="note" id="plmsg" role="status"></p>'+
+    '<p class="note">Primeiro acesso? O nome e o PIN que você digitar viram o perfil. Para entrar em outro aparelho, use o mesmo nome e PIN.</p>';
+}
+function renderContas(){
+  var box=$("#acdyn");if(!box)return;
+  var list=accs(),h='';
+  if(prof){
+    var stTxt={ok:'Sincronizado'+(sync.at?' às '+pad(new Date(sync.at).getHours())+':'+pad(new Date(sync.at).getMinutes()):''),syncing:'Sincronizando...',err:sync.msg||'Erro ao sincronizar',idle:'Conectado'}[sync.st]||'';
+    h+='<div class="card"><div class="acc"><span class="av big" aria-hidden="true">'+esc(initial(prof.name))+'</span><div class="nm">'+esc(prof.name)+'<small role="status">'+esc(stTxt)+'</small></div></div>'+
+      '<div class="chips"><button class="btn sm" id="plref" type="button">Sincronizar agora</button><button class="btn ghost sm" id="plout" type="button">Sair desta conta</button></div></div>';
+  }
+  if(list.length){
+    h+='<div class="card"><h3>Contas neste aparelho</h3>'+list.map(function(a){
+      var on=prof&&prof.id===a.id;
+      return '<div class="acc"><span class="av" aria-hidden="true">'+esc(initial(a.name))+'</span><div class="nm">'+esc(a.name)+(on?'<small>Conta ativa</small>':'')+'</div>'+(on?'':'<button class="btn sm" type="button" data-sw="'+esc(a.id)+'">Trocar</button>')+'</div>';
+    }).join('')+'</div>';
+  }
+  h+='<div class="card"><h3>'+(prof?'Adicionar outra conta':'Entrar')+'</h3>'+(prof?'':'<p class="note">Entre para sincronizar seus treinos e competir pontos. Peso e medidas não aparecem no placar, só os pontos.</p>')+loginForm()+'</div>';
+  box.innerHTML=h;
+}
 function autoTpl(name){return /^(dayse|deyse|daisy|dayane|daiane)/.test(slug(name))?"f":"m"}
 function doLogin(name,pin,tpl){
   var id=slug(name);
@@ -1190,8 +1263,10 @@ function doLogin(name,pin,tpl){
   if(String(pin).length<6)return Promise.reject(new Error("O PIN precisa ter 6 ou mais caracteres."));
   return post({a:"login",p:id,pin:pin,nome:name.trim().slice(0,40)}).then(function(r){
     if(!r.ok)throw new Error(r.erro||"erro");
+    if(prof&&prof.id!==id){push();snapAcc();blankS()} // adicionando outra conta: guarda a atual e começa limpo
     prof={id:id,name:name.trim().slice(0,40),pin:String(pin)};
     try{localStorage.setItem(PKEY,JSON.stringify(prof))}catch(e){}
+    addAcc(prof);
     if(r.novo){
       var tk=(tpl==="m"||tpl==="f")?tpl:autoTpl(name);
       if(id!=="gabriel"){ // perfil novo começa limpo, sem herdar dados de outra pessoa neste aparelho
@@ -1211,9 +1286,7 @@ function weekOf(d){var t=parse(d),dow=(t.getDay()+6)%7;return iso(new Date(t.get
 function renderPlacar(){
   var box=$("#pldyn");if(!box)return;
   if(!prof){
-    box.innerHTML='<div class="card"><h3>Competição diária</h3><p class="note">Entre com seu nome e um PIN (6 ou mais caracteres) para sincronizar seus treinos e competir pontos com a outra pessoa. Seu peso e suas medidas não aparecem no placar, só os pontos.</p>'+
-      '<form id="plogin" class="row"><label for="pn">Seu nome<input type="text" id="pn" maxlength="40" autocomplete="off" placeholder="ex.: Gabriel"></label><label for="pp">PIN<input type="password" id="pp" autocomplete="off" placeholder="6+ caracteres"></label><label for="pt">Treino inicial (só no primeiro acesso)<select id="pt"><option value="auto">Automático pelo nome</option><option value="m">Masculino (ABCD + casa)</option><option value="f">Feminino (ABCD + casa)</option></select></label><button class="btn" type="submit">Entrar</button></form><p class="note" id="plmsg" role="status"></p>'+
-      '<p class="note">Primeiro acesso? O nome e o PIN que você digitar viram seu perfil. Para entrar em outro aparelho, use o mesmo nome e PIN.</p></div>';
+    box.innerHTML='<div class="card"><h3>Competição diária</h3><p class="note">Entre com seu perfil para competir pontos com a outra pessoa. Peso e medidas não aparecem no placar.</p><div class="chips"><button class="btn" type="button" data-goto="contas">Entrar ou criar perfil</button></div></div>';
     return;
   }
   var t=today(),mine=scoreObj(t),rows=sync.board.filter(function(r){return r.p!==prof.id});
@@ -1248,17 +1321,21 @@ function renderPlacar(){
   h+='<div class="card"><h3>Como pontua</h3><div class="list"><div class="li"><span>Treino finalizado</span><b>'+SC.treino+'</b></div><div class="li"><span>Cada série marcada com ✓ (até '+SC.serieMax+')</span><b>'+SC.serie+'</b></div><div class="li"><span>Proteína na meta</span><b>'+SC.prot+'</b></div><div class="li"><span>Água na meta</span><b>'+SC.agua+'</b></div><div class="li"><span>Cardio feito</span><b>'+SC.cardio+'</b></div><div class="li"><span>Bônus por dia seguido com '+SC.streakMin+'+ pontos</span><b>+'+SC.streak+' (máx. '+SC.streakMax+')</b></div></div>'+
     '<p class="note">Os pontos são do seu próprio plano, então a disputa é de constância, não de quem levanta mais peso.</p></div>';
   var stTxt={ok:'Sincronizado'+(sync.at?' às '+pad(new Date(sync.at).getHours())+':'+pad(new Date(sync.at).getMinutes()):''),syncing:'Sincronizando...',err:sync.msg||'Erro ao sincronizar',idle:'Conectado'}[sync.st]||'';
-  h+='<div class="card"><p class="note" role="status">'+esc(prof.name)+' · '+esc(stTxt)+'</p><div class="chips"><button class="btn sm" id="plref" type="button">Atualizar placar</button><button class="btn ghost sm" id="plout" type="button">Sair</button></div></div>';
+  h+='<div class="card"><p class="note" role="status">'+esc(prof.name)+' · '+esc(stTxt)+'</p><div class="chips"><button class="btn sm" id="plref" type="button">Atualizar placar</button></div></div>';
   box.innerHTML=h;
 }
-$("#pldyn").addEventListener("submit",function(ev){
+document.addEventListener("submit",function(ev){
   if(ev.target.id!=="plogin")return;ev.preventDefault();
   var m=$("#plmsg");m.textContent="Entrando...";
-  doLogin($("#pn").value,$("#pp").value,$("#pt")?$("#pt").value:"auto").then(function(){curDay=suggestDay().di;editing=false;renderDay();renderProg();renderHoje();updHead();if($("#gk"))$("#gk").value=goalKg()?String(goalKg()).replace(".",","):"";renderPlacar()}).catch(function(e){m.textContent=String(e.message||"Não foi possível entrar. Verifique a internet.")});
+  doLogin($("#pn").value,$("#pp").value,$("#pt")?$("#pt").value:"auto").then(function(){renderAll();showView("placar")}).catch(function(e){m.textContent=String(e.message||"Não foi possível entrar. Verifique a internet.")});
 });
-$("#pldyn").addEventListener("click",function(ev){
-  if(ev.target.closest("#plref")){pull().then(fetchBoard)}
-  if(ev.target.closest("#plout")){prof=null;try{localStorage.removeItem(PKEY)}catch(e){}sync.board=[];sync.st="off";renderPlacar()}
+document.addEventListener("click",function(ev){
+  var t=ev.target,g=t.closest("[data-goto]"),sw=t.closest("[data-sw]"),sb=t.closest("[data-sub]");
+  if(g){showView(g.dataset.goto);return}
+  if(sb){showView(sb.dataset.sub);return}
+  if(sw){switchTo(sw.dataset.sw).then(function(){showView("placar")});return}
+  if(t.closest("#plref")){pull().then(fetchBoard)}
+  if(t.closest("#plout")&&prof){removeAcc(prof.id)}
 });
 document.addEventListener("visibilitychange",function(){if(!document.hidden&&prof&&Date.now()-(sync.bt||0)>30000){pull().then(fetchBoard)}});
 
@@ -1296,21 +1373,32 @@ $("#hdyn").addEventListener("change",function(ev){
 });
 
 /* ---------- navegação (guarda a posição de rolagem de cada aba) ---------- */
-var VIEWS=["treino","progresso","hoje","placar","cron"],scrollPos={};
+var VIEWS=["treino","progresso","hoje","placar","cron","contas"],SUBS=["placar","cron","contas"],scrollPos={},lastSub="placar";
 function showView(n){
   scrollPos[curView]=window.pageYOffset||0;
-  curView=n;
+  if(n==="perfil")n=lastSub;
+  curView=n;if(SUBS.indexOf(n)>=0)lastSub=n;
   VIEWS.forEach(function(v){$("#v-"+v).hidden=v!==n});
-  [].forEach.call(document.querySelectorAll("#main button"),function(b){b.setAttribute("aria-selected",b.dataset.v===n)});
+  [].forEach.call(document.querySelectorAll("#main button"),function(b){b.setAttribute("aria-selected",b.dataset.v===n||(b.dataset.v==="perfil"&&SUBS.indexOf(n)>=0))});
+  [].forEach.call(document.querySelectorAll("[data-sub]"),function(b){b.setAttribute("aria-selected",b.dataset.sub===n)});
   if(n==="treino")renderDay();
   if(n==="progresso")renderProg();if(n==="hoje")renderHoje();
+  if(n==="contas")renderContas();
   if(n==="placar"){renderPlacar();if(prof&&Date.now()-(sync.bt||0)>8000)fetchBoard()}
   updHead();
   try{history.replaceState(null,"","#"+n)}catch(e){}
   try{window.scrollTo(0,scrollPos[n]||0)}catch(e){}
 }
 $("#main").addEventListener("click",function(ev){var b=ev.target.closest("[data-v]");if(b)showView(b.dataset.v)});
-var h0=(location.hash||"").replace("#","");
+var SUBLBL={placar:"Placar",cron:"Cronômetro",contas:"Contas"};
+SUBS.forEach(function(v){
+  var bar=document.createElement("div");bar.className="seg sub";bar.setAttribute("role","group");bar.setAttribute("aria-label","Seções do perfil");
+  bar.innerHTML=SUBS.map(function(x){return '<button type="button" data-sub="'+x+'" aria-selected="'+(x===v)+'">'+SUBLBL[x]+'</button>'}).join("");
+  var sec=$("#v-"+v);sec.insertBefore(bar,sec.firstChild);
+});
+addAcc_boot();
+renderAvatar();
+var h0=(location.hash||"").replace("#","");if(h0==="perfil")h0=lastSub;
 curDay=suggestDay().di;
 showView(VIEWS.indexOf(h0)>=0?h0:"treino");
 if(prof){pull().then(fetchBoard)}
