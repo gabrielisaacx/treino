@@ -213,6 +213,18 @@ details.hx summary{cursor:pointer;font-weight:700;color:var(--c1);min-height:44p
 @keyframes finin{from{opacity:0}to{opacity:1}}
 @keyframes finpop{from{transform:scale(.8) translateY(20px);opacity:0}to{transform:none;opacity:1}}
 @keyframes fall{0%{opacity:1;transform:translate3d(0,0,0) rotate(0)}100%{opacity:.9;transform:translate3d(var(--dx),110vh,0) rotate(var(--rot))}}
+/* guia do exercício */
+details.guide summary{color:var(--c3)}
+.gimgs{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:6px 0 10px}
+.gimgs figure{margin:0;min-width:0}
+.gimgs img{width:100%;height:auto;aspect-ratio:3/2;object-fit:cover;border-radius:14px;display:block;background:var(--surface2)}
+.gimgs figcaption{font-size:.72rem;color:var(--muted);font-weight:700;margin-top:3px;text-align:center}
+.gk{display:grid;grid-template-columns:96px minmax(0,1fr);gap:6px 10px;font-size:.88rem;margin:0 0 8px}
+.gk dt{color:var(--muted);font-weight:700}
+.gk dd{margin:0;font-weight:600}
+.gsteps{margin:0 0 8px;padding-left:20px;font-size:.9rem}
+.gsteps li{margin:3px 0}
+.gtip{margin:0;background:var(--tint3);color:var(--fg);border-radius:12px;padding:8px 12px;font-size:.86rem}
 [hidden]{display:none!important}
 @media (prefers-reduced-motion:no-preference){.dial path,.dial circle{transition:stroke .25s}}
 </style>
@@ -318,7 +330,7 @@ details.hx summary{cursor:pointer;font-weight:700;color:var(--c1);min-height:44p
     <p class="note">O descanso entre as séries dispara sozinho quando você marca o ✓ no treino.</p>
   </section>
 
-  <p class="foot">Dados salvos neste aparelho. No celular, use "Adicionar à tela inicial" para abrir como app, inclusive sem internet.</p>
+  <p class="foot">Fotos dos exercícios: free-exercise-db (domínio público). Dados salvos neste aparelho. No celular, use "Adicionar à tela inicial" para abrir como app, inclusive sem internet.</p>
 </div>
 
 <div class="fin" id="fin" hidden role="dialog" aria-modal="true" aria-labelledby="fint"></div>
@@ -399,6 +411,40 @@ function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){retur
 function byDate(a,b){return a.d<b.d?-1:1}
 var WD=["dom","seg","ter","qua","qui","sex","sáb"],MO=["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"];
 function longDate(s){var d=parse(s);return WD[d.getDay()]+", "+d.getDate()+" "+MO[d.getMonth()]}
+
+/* Guia de exercícios: fotos em img/ (free-exercise-db, domínio público). Chave = nome do exercício. */
+var GUIDE={
+"Supino máquina":{i:"Machine_Bench_Press",eq:"Máquina de supino sentado (chest press)",m:"Peitoral",s:"Tríceps e ombro (parte da frente)",p:["Ajuste o banco para as alças ficarem na altura do meio do peito.","Costas e cabeça apoiadas no encosto, pés firmes no chão.","Empurre as alças para a frente até estender os braços, sem travar os cotovelos.","Volte devagar (2-3 s) até sentir o peito alongar."],t:"Ombros para baixo e para trás, sem encolher. Não deixe os cotovelos abrirem demais."},
+"Supino inclinado halter":{i:"Incline_Dumbbell_Press",eq:"Banco inclinado (30-45°) e halteres",m:"Peitoral (parte de cima)",s:"Ombro e tríceps",p:["Regule o banco em 30-45° e sente com as costas bem apoiadas.","Comece com os halteres na altura do peito, cotovelos um pouco abaixo dos punhos.","Empurre os halteres para cima, aproximando-os no topo.","Desça devagar até o peito alongar."],t:"Inclinação muito alta (acima de 45°) passa o trabalho para o ombro."},
+"Crucifixo máquina":{i:"Butterfly",eq:"Máquina Peck Deck / Voador (butterfly)",m:"Peitoral",s:"Ombro (parte da frente)",p:["Ajuste o assento para as alças ficarem na altura do peito.","Costas no encosto, cotovelos levemente dobrados.","Una as alças à frente do peito, como um abraço.","Volte devagar até sentir o peito abrir, sem deixar os braços irem muito para trás."],t:"Faça com controle e carga leve. Ombros para baixo, sem encolher."},
+"Tríceps pulley":{i:"Triceps_Pushdown",eq:"Polia alta com barra reta ou V",m:"Tríceps",s:"Antebraço",p:["Em pé, de frente para a polia, cotovelos colados ao corpo.","Segure a barra com as mãos na largura dos ombros.","Estenda os cotovelos, empurrando a barra para baixo até ficar reta.","Volte devagar até as mãos chegarem perto do peito."],t:"Só o antebraço se move. Se o cotovelo subir ou o tronco balançar, a carga está alta."},
+"Tríceps corda":{i:"Triceps_Pushdown_-_Rope_Attachment",eq:"Polia alta com corda",m:"Tríceps",s:"Antebraço",p:["Em pé, cotovelos colados ao corpo, segurando as pontas da corda.","Empurre a corda para baixo até estender os braços.","No final, afaste as pontas da corda para os lados para contrair mais o tríceps.","Volte devagar até os antebraços ficarem quase paralelos ao chão."],t:"Mantenha o tronco parado e os ombros baixos."},
+"Prancha":{i:"Plank",eq:"Sem equipamento (colchonete ajuda)",m:"Abdômen (core)",s:"Ombros, glúteos e lombar",p:["Apoie antebraços e pontas dos pés no chão, cotovelos embaixo dos ombros.","Corpo reto da cabeça aos calcanhares, abdômen contraído e glúteos firmes.","Respire normalmente e mantenha pelo tempo da série.","Se o quadril cair ou subir, pare e descanse."],t:"Olhe para o chão, sem levantar o pescoço. Qualidade vale mais que tempo."},
+"Puxada frontal":{i:"Wide-Grip_Lat_Pulldown",eq:"Polia alta com barra larga (puxada na frente)",m:"Costas (grande dorsal)",s:"Bíceps e parte de trás do ombro",p:["Ajuste o apoio das coxas para o corpo não levantar do banco.","Pegue a barra mais larga que os ombros, com os braços esticados.","Incline o tronco levemente para trás e puxe a barra até a altura do queixo/peito, levando os cotovelos para baixo.","Volte devagar até esticar os braços, sentindo as costas alongarem."],t:"Pense em puxar com os cotovelos, não com as mãos. Evite balançar o corpo."},
+"Remada baixa":{i:"Seated_Cable_Rows",eq:"Polia baixa sentada com triângulo (remada baixa)",m:"Costas (meio das costas)",s:"Bíceps e ombro de trás",p:["Sente com os pés apoiados e os joelhos levemente dobrados.","Segure o triângulo com os braços esticados e a coluna reta.","Puxe até o abdômen, juntando as escápulas (omoplatas).","Volte devagar sem deixar as costas arredondarem."],t:"Tronco quase parado. Não use o impulso das costas para puxar."},
+"Remada máquina":{i:"Leverage_Iso_Row",eq:"Máquina de remada sentada com apoio no peito",m:"Costas",s:"Bíceps e ombro de trás",p:["Ajuste o assento e apoie o peito no encosto.","Segure as alças com os braços estendidos.","Puxe os cotovelos para trás, juntando as escápulas.","Volte devagar até alongar as costas."],t:"Peito sempre colado no apoio. Segure 1 s na contração."},
+"Face pull":{i:"Face_Pull",eq:"Polia alta com corda",m:"Ombro de trás e parte alta das costas",s:"Meio das costas",p:["Ajuste a polia na altura do rosto e segure a corda com as palmas voltadas uma para a outra.","Dê um passo para trás, braços esticados à frente.","Puxe a corda em direção ao rosto, abrindo os cotovelos para os lados.","Segure 1 s e volte devagar."],t:"Carga leve! O foco é a postura e o ombro, não o peso."},
+"Rosca direta":{i:"Barbell_Curl",eq:"Barra reta ou barra W (em pé)",m:"Bíceps",s:"Antebraço",p:["Em pé, pegada na largura dos ombros, palmas para cima.","Cotovelos colados ao corpo.","Suba a barra dobrando os cotovelos até o bíceps contrair.","Desça devagar até os braços quase esticados."],t:"Sem balançar o corpo nem jogar a carga com as costas."},
+"Rosca martelo":{i:"Hammer_Curls",eq:"Halteres (em pé ou sentado)",m:"Bíceps e antebraço",s:"Braquial",p:["Segure os halteres com as palmas voltadas para o corpo, como um martelo.","Cotovelos colados ao tronco.","Suba um haltere de cada vez (ou os dois) até a altura do ombro.","Desça devagar sem balançar."],t:"Mantenha os punhos retos durante todo o movimento."},
+"Abdominal na polia":{i:"Cable_Crunch",eq:"Polia alta com corda (ajoelhado)",m:"Abdômen",s:"Flexores do quadril",p:["Ajoelhe-se de frente para a polia e segure a corda junto à cabeça.","Quadril parado, abdômen contraído.","Enrole o tronco para baixo, levando os cotovelos em direção aos joelhos.","Volte devagar até a posição inicial."],t:"O movimento vem do abdômen, não do quadril puxando para trás. Carga moderada."},
+"Leg press":{i:"Leg_Press",eq:"Leg press 45° (ou horizontal)",m:"Coxa da frente (quadríceps) e glúteos",s:"Posterior de coxa e panturrilha",p:["Sente com as costas e o quadril bem apoiados, pés na largura dos ombros na plataforma.","Destrave a máquina e desça controlando até os joelhos chegarem a ~90°.","Empurre com o meio do pé até quase esticar as pernas, sem travar os joelhos.","Não deixe o quadril descolar do assento embaixo."],t:"Joelhos alinhados com os pés, sem cair para dentro. Pés mais altos na plataforma exigem mais glúteo."},
+"Stiff com halter":{i:"Stiff-Legged_Dumbbell_Deadlift",eq:"Halteres (em pé)",m:"Posterior de coxa e glúteos",s:"Lombar",p:["Em pé, halteres à frente das coxas, joelhos levemente dobrados.","Empurre o quadril para trás, descendo os halteres rente às pernas.","Coluna sempre reta; desça até sentir o posterior da coxa alongar (altura do joelho ou pouco abaixo).","Volte empurrando o quadril para a frente."],t:"É um movimento de quadril, não de agachar. Nunca arredonde as costas."},
+"Cadeira extensora":{i:"Leg_Extensions",eq:"Cadeira extensora",m:"Coxa da frente (quadríceps)",s:"",p:["Ajuste o encosto para o joelho ficar alinhado com o eixo da máquina.","Apoie o tornozelo sob o rolo.","Estenda as pernas até quase esticar, contraindo a coxa.","Desça devagar (2-3 s)."],t:"Sem chutar a carga. Segure 1 s lá em cima."},
+"Flexora":{i:"Lying_Leg_Curls",eq:"Mesa flexora (deitada) ou cadeira flexora (sentada)",m:"Posterior de coxa",s:"Panturrilha",p:["Deite de barriga para baixo, rolo apoiado logo acima dos calcanhares.","Segure as alças e mantenha o quadril colado no banco.","Dobre os joelhos levando os calcanhares em direção aos glúteos.","Volte devagar até quase esticar."],t:"Não levante o quadril. Na versão sentada o movimento é o mesmo."},
+"Elevação pélvica":{i:"Barbell_Hip_Thrust",eq:"Banco com barra (ou máquina de hip thrust)",m:"Glúteos",s:"Posterior de coxa",p:["Apoie a parte de cima das costas no banco, barra sobre o quadril (com proteção).","Pés no chão, joelhos dobrados a ~90°.","Suba o quadril até o tronco ficar alinhado com as coxas, apertando os glúteos.","Desça devagar e repita."],t:"Queixo no peito e olhar para a frente. Não arqueie a lombar no topo."},
+"Panturrilha":{i:"Standing_Calf_Raises",eq:"Máquina de panturrilha em pé (ou degrau)",m:"Panturrilha",s:"",p:["Apoie a ponta dos pés na plataforma e os ombros sob os apoios.","Pernas quase esticadas, calcanhares soltos para baixo.","Suba o máximo que conseguir na ponta dos pés.","Desça devagar até alongar bem a panturrilha."],t:"Amplitude total e 1 s de pausa no topo. Sem quicar."},
+"Desenvolvimento máquina":{i:"Leverage_Shoulder_Press",eq:"Máquina de desenvolvimento de ombro (shoulder press)",m:"Ombros",s:"Tríceps",p:["Ajuste o assento para as alças ficarem na altura dos ombros.","Costas apoiadas no encosto.","Empurre as alças para cima até quase esticar os braços.","Volte devagar até a altura das orelhas."],t:"Não arqueie as costas nem encolha os ombros."},
+"Elevação lateral":{i:"Side_Lateral_Raise",eq:"Halteres (em pé)",m:"Ombro (parte do meio)",s:"",p:["Em pé, halteres ao lado do corpo, cotovelos levemente dobrados.","Levante os braços para os lados até a altura dos ombros.","Pare na altura do ombro, com o cotovelo um pouco acima da mão.","Desça devagar (2-3 s)."],t:"Peso leve e sem balançar o corpo. Não suba acima da altura dos ombros."},
+"Remada unilateral ou baixa":{i:"One-Arm_Dumbbell_Row",eq:"Banco reto e halter (remada serrote)",m:"Costas (grande dorsal)",s:"Bíceps e ombro de trás",p:["Apoie um joelho e a mão do mesmo lado no banco, costas retas.","Com a outra mão, pegue o halter com o braço esticado.","Puxe o halter em direção ao quadril, cotovelo rente ao corpo.","Desça devagar até alongar as costas e repita; depois troque de lado."],t:"Sem girar o tronco. Pense em puxar o cotovelo para trás."},
+"Elevação de pernas":{i:"Flat_Bench_Lying_Leg_Raise",eq:"Banco reto (deitado)",m:"Abdômen (parte de baixo)",s:"Flexores do quadril",p:["Deite no banco, segurando a borda atrás da cabeça.","Pernas esticadas (ou levemente dobradas).","Suba as pernas até ficarem na vertical, sem balançar.","Desça devagar sem encostar no banco até o fim."],t:"Lombar sempre colada no banco. Se arquear, dobre os joelhos."},
+"Agachamento livre (mochila opcional)":{i:"Bodyweight_Squat",eq:"Sem equipamento (mochila com peso, opcional)",m:"Coxas e glúteos",s:"Posterior de coxa",p:["Pés na largura dos ombros, pontas levemente para fora.","Braços à frente para equilibrar (ou mochila no peito).","Desça empurrando o quadril para trás, como sentar numa cadeira.","Suba empurrando o chão com os pés."],t:"Joelhos alinhados com os pés e calcanhares no chão. Coluna reta."},
+"Flexão de braço (joelho, parede ou sofá)":{i:"Pushups",eq:"Sem equipamento (joelho no chão ou mãos no sofá/parede deixam mais fácil)",m:"Peitoral",s:"Tríceps e ombro",p:["Mãos um pouco mais largas que os ombros, corpo reto.","Abdômen e glúteos contraídos.","Desça o peito até quase o chão, cotovelos a ~45° do corpo.","Empurre o chão e volte à posição inicial."],t:"Fácil demais? Só mãos no chão. Difícil? Mãos no sofá ou na parede."},
+"Avanço alternado (por perna)":{i:"Bodyweight_Walking_Lunge",eq:"Sem equipamento",m:"Coxas e glúteos",s:"Posterior de coxa e panturrilha",p:["Em pé, dê um passo largo à frente.","Desça o joelho de trás em direção ao chão, tronco reto.","Empurre com o pé da frente e volte.","Alterne as pernas."],t:"Joelho da frente alinhado com o pé, sem passar muito da ponta. Use um apoio se perder o equilíbrio."},
+"Remada curvada com mochila ou garrafas":{i:"Bent_Over_Two-Dumbbell_Row",eq:"Mochila com peso ou garrafas de água/galões",m:"Costas",s:"Bíceps e ombro de trás",p:["Pés na largura dos ombros, joelhos levemente dobrados.","Incline o tronco à frente, costas retas, peso pendurado à frente.","Puxe o peso até o abdômen, juntando as escápulas.","Desça devagar."],t:"Coluna neutra. Se as costas arredondarem, diminua a inclinação ou o peso."},
+"Elevação pélvica no chão":{i:"Butt_Lift_Bridge",eq:"Sem equipamento (colchonete)",m:"Glúteos",s:"Posterior de coxa",p:["Deite de costas, joelhos dobrados e pés no chão.","Braços ao lado do corpo.","Suba o quadril apertando os glúteos até alinhar ombros, quadril e joelhos.","Segure 1-2 s e desça devagar."],t:"Empurre pelos calcanhares. Sem arquear a lombar no topo."},
+"Escalador lento (sem pular)":{i:"Mountain_Climbers",eq:"Sem equipamento",m:"Abdômen (core)",s:"Ombros, quadris e coxas",p:["Posição de prancha com as mãos no chão, corpo reto.","Leve um joelho em direção ao peito, devagar.","Volte e alterne a perna, sem pular nem correr.","Mantenha o abdômen contraído."],t:"Versão sem impacto, controlada. Quadril na altura das costas."},
+"Dead bug (core)":{i:"Dead_Bug",eq:"Sem equipamento (colchonete)",m:"Abdômen profundo (core)",s:"Flexores do quadril",p:["Deite de costas, braços esticados para cima e joelhos a 90° sobre o quadril.","Lombar colada no chão.","Estique devagar o braço de um lado e a perna do lado oposto.","Volte e alterne, sem a lombar sair do chão."],t:"Devagar e com controle. Se a lombar desgrudar, diminua o alcance."}
+};
 
 /* ---------- estado ---------- */
 var KEY="treino.v2";
@@ -657,6 +703,14 @@ function histHtml(ex){
   }).join("");
   return (pts.length>1?'<p class="note">'+(ex.u==="s"?"Maior tempo":"Maior carga")+' por sessão</p>'+mini(pts,ex.u==="s"?" s":" kg"):'')+'<div class="list">'+rows+'</div>';
 }
+function guideHtml(ex){
+  var g=GUIDE[ex.n];if(!g)return "";
+  return '<details class="hx guide"><summary>Como fazer</summary>'+
+    '<div class="gimgs"><figure><img src="img/'+g.i+'_0.jpg" alt="'+esc(ex.n)+': posição inicial" loading="lazy"><figcaption>Início</figcaption></figure>'+
+    '<figure><img src="img/'+g.i+'_1.jpg" alt="'+esc(ex.n)+': posição final" loading="lazy"><figcaption>Final</figcaption></figure></div>'+
+    '<dl class="gk"><dt>Equipamento</dt><dd>'+esc(g.eq)+'</dd><dt>Músculo principal</dt><dd>'+esc(g.m)+'</dd>'+(g.s?'<dt>Ajuda também</dt><dd>'+esc(g.s)+'</dd>':'')+'</dl>'+
+    '<ol class="gsteps">'+g.p.map(function(x){return '<li>'+esc(x)+'</li>'}).join("")+'</ol><p class="gtip"><b>Dica:</b> '+esc(g.t)+'</p></details>';
+}
 function renderDay(){
   var D=getDays();if(curDay>=D.length)curDay=0;
   var sd=suggestDay(),t=today();
@@ -672,7 +726,8 @@ function renderDay(){
     var key=ex.id,e=entry(key,false),hn=hint(ex),u=ex.u==="s";
     var isNew=ex.nw&&!(S.logs[key]&&S.logs[key].length);
     var nd=e?e.sets.slice(0,ex.s).filter(function(x){return x&&x[2]}).length:0;
-    h+='<article class="card ex"><div class="exh"><div class="name">'+esc(ex.n)+(isNew?'<span class="badge">novo</span>':'')+'<div class="meta">'+restTxt(ex)+'</div></div><div class="exr"><div class="scheme">'+scheme(ex)+'</div><div class="xr" data-xr="'+key+'">'+xringHtml(nd,ex.s)+'</div></div></div>';
+    h+='<article class="card ex"><div class="exh"><div class="name">'+esc(ex.n)+(isNew?'<span class="badge">novo</span>':'')+'<div class="meta">'+(GUIDE[ex.n]?esc(GUIDE[ex.n].m)+' · ':'')+restTxt(ex)+'</div></div><div class="exr"><div class="scheme">'+scheme(ex)+'</div><div class="xr" data-xr="'+key+'">'+xringHtml(nd,ex.s)+'</div></div></div>';
+    h+=guideHtml(ex);
     h+='<p class="hint">'+hn.last+'</p>';
     if(hn.sug)h+='<p class="sug">'+hn.sug+'</p>';
     h+='<div class="sets">';
