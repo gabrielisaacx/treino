@@ -224,9 +224,12 @@ details.hx summary{cursor:pointer;font-weight:700;color:var(--c1);min-height:44p
       <h1 id="title">Treino</h1>
       <p class="date" id="datel"></p>
     </div>
+    <div style="display:flex;gap:8px;flex:none">
+    <button class="round" id="mutebtn" type="button" aria-label="Som ligado" aria-pressed="false"></button>
     <button class="round" id="editbtn" type="button" aria-label="Editar treino" hidden>
       <svg viewBox="0 0 24 24"><path d="M4 20l4-1 10.5-10.5-3-3L5 16l-1 4z"/><path d="M14 6l3 3"/></svg>
     </button>
+    </div>
   </header>
 
   <!-- TREINO -->
@@ -400,7 +403,7 @@ function longDate(s){var d=parse(s);return WD[d.getDay()]+", "+d.getDate()+" "+M
 /* ---------- estado ---------- */
 var KEY="treino.v2";
 var S=(function(){
-  var d={logs:{},cardio:{},body:[],bio:[],daily:{},goals:{prot:160,water:3000},plan:null,seeded:false,done:{}};
+  var d={logs:{},cardio:{},body:[],bio:[],daily:{},goals:{prot:160,water:3000},plan:null,seeded:false,done:{},mute:false};
   try{var r=JSON.parse(localStorage.getItem(KEY));if(r&&typeof r==="object"){for(var k in d)if(r[k]!==undefined)d[k]=r[k]}}catch(e){}
   if(!d.seeded){ // pesos informados pelo Gabriel: 20/08, 25/09 e 05/11 (só entram uma vez, se não houver medidas)
     if(!d.body.length)d.body=[{d:"2026-08-20",kg:104.5},{d:"2026-09-25",kg:99.6},{d:"2026-11-05",kg:91.4}];
@@ -504,12 +507,27 @@ function hexNot(){}
 /* ---------- som e cronômetros ---------- */
 var tEnd=0,tInt=null,tCtx=null;
 function resumeAudio(){try{var C=window.AudioContext||window.webkitAudioContext;if(C){tCtx=tCtx||new C();if(tCtx.resume)tCtx.resume()}}catch(e){}}
+function tone(f,at,dur,type,vol){
+  if(S.mute||!tCtx)return;
+  try{var t=tCtx.currentTime+at,o=tCtx.createOscillator(),g=tCtx.createGain();
+    o.type=type||"sine";o.frequency.value=f;o.connect(g);g.connect(tCtx.destination);
+    g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(vol||0.18,t+0.015);g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+    o.start(t);o.stop(t+dur+0.03)}catch(e){}
+}
+function sfx(n){
+  resumeAudio();
+  if(n==="pop"){tone(660,0,.09,"sine",.16);tone(990,.05,.08,"sine",.1)}          /* série concluída */
+  else if(n==="tick"){tone(740,0,.08,"square",.07)}                              /* contagem dos 3 últimos segundos */
+  else if(n==="rest"){tone(784,0,.16,"triangle",.2);tone(1047,.17,.16,"triangle",.2);tone(1319,.34,.32,"triangle",.2)} /* fim do descanso */
+  else if(n==="win"){[523,659,784,1047].forEach(function(f,i){tone(f,i*.13,.28,"triangle",.2)});[523,659,784,1047].forEach(function(f){tone(f,.62,.9,"sine",.1)});tone(1319,.62,1,"triangle",.14)} /* treino finalizado */
+}
 function beep(){
   try{if(navigator.vibrate)navigator.vibrate([200,100,200])}catch(e){}
-  try{if(tCtx){var o=tCtx.createOscillator(),g=tCtx.createGain();o.connect(g);g.connect(tCtx.destination);o.frequency.value=880;g.gain.value=0.15;o.start();o.stop(tCtx.currentTime+0.4)}}catch(e){}
+  sfx("rest");
 }
-function startTimer(sec){resumeAudio();tEnd=Date.now()+sec*1000;$("#timer").hidden=false;if(!tInt)tInt=setInterval(tick,250);tick()}
-function tick(){var r=Math.ceil((tEnd-Date.now())/1000);if(r<=0){stopTimer(true);return}$("#tleft").textContent=pad(Math.floor(r/60))+":"+pad(r%60)}
+function startTimer(sec){resumeAudio();tLast=0;tEnd=Date.now()+sec*1000;$("#timer").hidden=false;if(!tInt)tInt=setInterval(tick,250);tick()}
+var tLast=0;
+function tick(){var r=Math.ceil((tEnd-Date.now())/1000);if(r<=0){stopTimer(true);return}if(r<=3&&r!==tLast){sfx("tick")}tLast=r;$("#tleft").textContent=pad(Math.floor(r/60))+":"+pad(r%60)}
 function stopTimer(b){clearInterval(tInt);tInt=null;$("#timer").hidden=true;if(b)beep()}
 $("#tplus").onclick=function(){tEnd+=30000;tick()};
 $("#tstop").onclick=function(){stopTimer(false)};
@@ -699,6 +717,7 @@ function celebrate(){
     '<button class="btn" type="button" id="finx" style="width:100%">Fechar</button></div>';
   box.hidden=false;
   try{if(navigator.vibrate)navigator.vibrate([120,60,120,60,220])}catch(e){}
+  sfx("win");
   setTimeout(function(){var b=$("#finx");if(b)b.focus()},50);
 }
 $("#fin").addEventListener("click",function(ev){if(ev.target.id==="finx"||ev.target===this){this.hidden=true}});
@@ -740,6 +759,11 @@ function editChange(t){
   else if(e==="u"){if(t.value==="s")ex.u="s";else delete ex.u}
   save();renderDay();
 }
+var ICON_ON='<svg viewBox="0 0 24 24"><path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5H4z"/><path d="M15.5 9a4 4 0 010 6M18 6.5a7.5 7.5 0 010 11"/></svg>';
+var ICON_OFF='<svg viewBox="0 0 24 24"><path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5H4z"/><path d="M16 9.5l5 5M21 9.5l-5 5"/></svg>';
+function muteUi(){var b=$("#mutebtn");b.innerHTML=S.mute?ICON_OFF:ICON_ON;b.setAttribute("aria-pressed",!!S.mute);b.setAttribute("aria-label",S.mute?"Som desligado":"Som ligado")}
+$("#mutebtn").onclick=function(){S.mute=!S.mute;save();muteUi();if(!S.mute)sfx("pop")};
+muteUi();
 function toTop(){try{window.scrollTo(0,0)}catch(e){}}
 $("#editbtn").onclick=function(){editing=true;resetArm=false;renderDay();toTop()};
 $("#dtabs").addEventListener("click",function(ev){
@@ -787,6 +811,7 @@ $("#day").addEventListener("click",function(ev){
     b.classList.toggle("on",!!s[2]);b.setAttribute("aria-pressed",!!s[2]);
     var ex=findEx(b.dataset.k),xr=b.closest(".ex").querySelector(".xr");
     if(ex&&xr)xr.innerHTML=xringHtml(e.sets.slice(0,ex.s).filter(function(x){return x&&x[2]}).length,ex.s);
+    if(s[2])sfx("pop");
     if(s[2]&&curDate===today())startTimer(+b.dataset.rest);
     return;
   }
@@ -956,7 +981,7 @@ $("#bimp").addEventListener("change",function(ev){
     try{
       var o=JSON.parse(rd.result);
       if(!o||typeof o!=="object"||!o.logs||!Array.isArray(o.body))throw new Error("formato");
-      ["logs","cardio","body","bio","daily","goals","plan","done"].forEach(function(k){if(o[k]!==undefined)S[k]=o[k]});
+      ["logs","cardio","body","bio","daily","goals","plan","done","mute"].forEach(function(k){if(o[k]!==undefined)S[k]=o[k]});
       if(!Array.isArray(S.bio))S.bio=[];
       S.seeded=true;save();editing=false;renderDay();renderProg();renderHoje();m.textContent="Backup importado.";
     }catch(e){m.textContent="Arquivo inválido. Use um backup exportado por esta página."}
