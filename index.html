@@ -1241,9 +1241,9 @@ function removeAcc(id){
   renderAll();return Promise.resolve();
 }
 function loginForm(){
-  return '<form id="plogin" class="row"><label for="pn">Nome<input type="text" id="pn" maxlength="40" autocomplete="off" placeholder="ex.: Gabriel"></label><label for="pp">PIN<input type="password" id="pp" autocomplete="off" placeholder="6+ caracteres"></label>'+
+  return '<form id="plogin" class="row"><label for="pn">Nome<input type="text" id="pn" maxlength="40" autocomplete="off" placeholder="ex.: Gabriel"></label><label for="pp" id="ppl" hidden>PIN deste perfil<input type="password" id="pp" autocomplete="off" placeholder="o PIN que você criou"></label>'+
     '<label for="pt">Treino inicial (só no primeiro acesso)<select id="pt"><option value="auto">Automático pelo nome</option><option value="m">Masculino (ABCD + casa)</option><option value="f">Feminino (ABCD + casa)</option></select></label><button class="btn" type="submit">Entrar</button></form><p class="note" id="plmsg" role="status"></p>'+
-    '<p class="note">Primeiro acesso? O nome e o PIN que você digitar viram o perfil. Para entrar em outro aparelho, use o mesmo nome e PIN.</p>';
+    '<p class="note">Sem senha: digite só o nome. Para entrar em outro aparelho, use o mesmo nome.</p>';
 }
 function renderContas(){
   var box=$("#acdyn");if(!box)return;
@@ -1262,11 +1262,13 @@ function renderContas(){
   h+='<div class="card"><h3>'+(prof?'Adicionar outra conta':'Entrar')+'</h3>'+(prof?'':'<p class="note">Entre para sincronizar seus treinos e competir pontos. Peso e medidas não aparecem no placar, só os pontos.</p>')+loginForm()+'</div>';
   box.innerHTML=h;
 }
+var FREE_PIN="acesso-livre";
 function autoTpl(name){return /^(dayse|deyse|daisy|dayane|daiane)/.test(slug(name))?"f":"m"}
 function doLogin(name,pin,tpl){
   var id=slug(name);
   if(!id)return Promise.reject(new Error("Digite seu nome."));
-  if(String(pin).length<6)return Promise.reject(new Error("O PIN precisa ter 6 ou mais caracteres."));
+  pin=String(pin||"").trim()||FREE_PIN;
+  if(pin!==FREE_PIN&&pin.length<4)return Promise.reject(new Error("O PIN precisa ter 4 ou mais caracteres."));
   return post({a:"login",p:id,pin:pin,nome:name.trim().slice(0,40)}).then(function(r){
     if(!r.ok)throw new Error(r.erro||"erro");
     if(!prof||prof.id!==id){ // troca de identidade: guarda a atual e começa limpo, nunca mistura dados
@@ -1339,7 +1341,7 @@ function renderPlacar(){
 document.addEventListener("submit",function(ev){
   if(ev.target.id!=="plogin")return;ev.preventDefault();
   var m=$("#plmsg");m.textContent="Entrando...";
-  doLogin($("#pn").value,$("#pp").value,$("#pt")?$("#pt").value:"auto").then(function(){renderAll();showView("placar")}).catch(function(e){m.textContent=String(e.message||"Não foi possível entrar. Verifique a internet.")});
+  doLogin($("#pn").value,$("#pp").value,$("#pt")?$("#pt").value:"auto").then(function(){renderAll();showView("placar")}).catch(function(e){var t=String(e.message||"Não foi possível entrar. Verifique a internet.");if(/PIN incorreto/.test(t)){$("#ppl").hidden=false;t="Esse perfil foi criado com PIN. Digite o PIN dele para entrar."}m.textContent=t});
 });
 document.addEventListener("click",function(ev){
   var t=ev.target,g=t.closest("[data-goto]"),sw=t.closest("[data-sw]"),sb=t.closest("[data-sub]");
