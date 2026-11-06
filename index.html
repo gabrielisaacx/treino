@@ -238,9 +238,11 @@ details.guide summary{color:var(--c3)}
 .crown{color:var(--c3);font-weight:800;font-size:.78rem}
 .hist .li b{font-family:var(--display);font-weight:600;font-size:1.15rem}
 .win{color:var(--c3)}
+.tabbar.five{grid-template-columns:repeat(5,1fr)}
+.tabbar.five button{font-size:.62rem}
 .av{width:22px;height:22px;border-radius:50%;border:1.8px solid currentColor;display:grid;place-items:center;font:700 .66rem var(--body);line-height:1}
 .av.big{width:56px;height:56px;border-width:2px;font-size:1.4rem;background:var(--tint1);color:var(--c1)}
-.seg.sub{grid-template-columns:repeat(3,1fr);margin-bottom:12px}
+.seg.sub{grid-template-columns:repeat(2,1fr);margin-bottom:12px}
 .seg.sub button{border:0;background:transparent;color:var(--fg);border-radius:15px;padding:10px 4px;min-height:44px;font:700 .85rem var(--body);cursor:pointer}
 .seg.sub button[aria-selected="true"]{background:var(--c1);color:var(--ink)}
 .acc{display:flex;align-items:center;gap:12px;padding:10px 0;border-top:1px solid var(--line)}
@@ -378,10 +380,11 @@ details.guide summary{color:var(--c3)}
   <div class="chips"><button class="btn" id="tplus" type="button">+30 s</button><button class="btn" id="tstop" type="button">Parar</button></div>
 </div>
 
-<nav class="tabbar" id="main" role="tablist" aria-label="Seções do app">
+<nav class="tabbar five" id="main" role="tablist" aria-label="Seções do app">
   <button role="tab" data-v="treino" aria-selected="true"><svg viewBox="0 0 24 24"><path d="M6.5 6.5v11M17.5 6.5v11M3.5 9v6M20.5 9v6M6.5 12h11"/></svg>Treino</button>
   <button role="tab" data-v="progresso" aria-selected="false"><svg viewBox="0 0 24 24"><path d="M4 4v16h16M8 15l3-4 3 2.5 5-6"/></svg>Progresso</button>
   <button role="tab" data-v="hoje" aria-selected="false"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.3"/></svg>Hoje</button>
+  <button role="tab" data-v="cron" aria-selected="false"><svg viewBox="0 0 24 24"><circle cx="12" cy="13.5" r="7.5"/><path d="M12 13.5V9.5M9.5 3.5h5M12 3.5V6"/></svg>Cronômetro</button>
   <button role="tab" data-v="perfil" aria-selected="false"><span class="av" id="avtab" aria-hidden="true">•</span>Perfil</button>
 </nav>
 
@@ -1373,7 +1376,7 @@ $("#hdyn").addEventListener("change",function(ev){
 });
 
 /* ---------- navegação (guarda a posição de rolagem de cada aba) ---------- */
-var VIEWS=["treino","progresso","hoje","placar","cron","contas"],SUBS=["placar","cron","contas"],scrollPos={},lastSub="placar";
+var VIEWS=["treino","progresso","hoje","placar","cron","contas"],SUBS=["placar","contas"],scrollPos={},lastSub="placar";
 function showView(n){
   scrollPos[curView]=window.pageYOffset||0;
   if(n==="perfil")n=lastSub;
@@ -1390,7 +1393,7 @@ function showView(n){
   try{window.scrollTo(0,scrollPos[n]||0)}catch(e){}
 }
 $("#main").addEventListener("click",function(ev){var b=ev.target.closest("[data-v]");if(b)showView(b.dataset.v)});
-var SUBLBL={placar:"Placar",cron:"Cronômetro",contas:"Contas"};
+var SUBLBL={placar:"Placar",contas:"Contas"};
 SUBS.forEach(function(v){
   var bar=document.createElement("div");bar.className="seg sub";bar.setAttribute("role","group");bar.setAttribute("aria-label","Seções do perfil");
   bar.innerHTML=SUBS.map(function(x){return '<button type="button" data-sub="'+x+'" aria-selected="'+(x===v)+'">'+SUBLBL[x]+'</button>'}).join("");
