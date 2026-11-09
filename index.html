@@ -240,6 +240,8 @@ details.guide summary{color:var(--c3)}
 .win{color:var(--c3)}
 .tabbar.five{grid-template-columns:repeat(5,1fr)}
 .tabbar.five button{font-size:.62rem}
+.syncbar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:8px 0 2px;padding:8px 12px;border-radius:16px;background:var(--surface);border:1px solid var(--c3);font-size:.82rem;font-weight:600}
+.syncbar span{min-width:0}
 .av{width:22px;height:22px;border-radius:50%;border:1.8px solid currentColor;display:grid;place-items:center;font:700 .66rem var(--body);line-height:1}
 .av.big{width:56px;height:56px;border-width:2px;font-size:1.4rem;background:var(--tint1);color:var(--c1)}
 .seg.sub{grid-template-columns:repeat(2,1fr);margin-bottom:12px}
@@ -268,6 +270,7 @@ details.guide summary{color:var(--c3)}
     </button>
     </div>
   </header>
+  <div class="syncbar" id="syncbar" role="status" hidden><span></span><button class="btn sm" type="button" id="syncretry">Tentar agora</button></div>
 
   <!-- TREINO -->
   <section id="v-treino" class="view">
@@ -544,7 +547,10 @@ var S=(function(){
   try{var r=JSON.parse(localStorage.getItem(KEY));if(r&&typeof r==="object"){for(var k in d)if(r[k]!==undefined)d[k]=r[k]}}catch(e){}
   return d;
 })();
-function save(){S.updatedAt=Date.now();try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}schedPush()}
+var saveT=null;
+function persist(){clearTimeout(saveT);saveT=null;try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+function save(){S.updatedAt=Date.now();if(typeof sync!=="undefined"&&prof){sync.dirty=true;sync.seq++}if(!saveT)saveT=setTimeout(persist,300);schedPush()}
+window.addEventListener("pagehide",function(){if(saveT)persist()});
 function getDays(){
   if(!(S.plan&&S.plan.length))return DEFAULT;
   if(!S.plan.some(function(d){return d.home})){var h=DEFAULT.filter(function(d){return d.home})[0];if(h)S.plan.push(JSON.parse(JSON.stringify(h)))}
@@ -761,7 +767,8 @@ function renderHero(){
     '<li><span class="lab"><i class="dot" style="background:var(--c3)"></i>Proteína</span><b>'+prot+'<small>de '+goal+' g</small></b></li></ul></div>'+
     '<p class="hl">'+sugMsg()+(cardio?' Cardio feito.':'')+'</p>'+(wl?'<p class="hl">'+wl+'</p>':'');
 }
-function updProg(){if(!editing)renderHero()}
+var heroRaf=0;
+function updProg(){if(editing||heroRaf)return;heroRaf=(window.requestAnimationFrame||setTimeout)(function(){heroRaf=0;renderHero()})}
 function mini(pts,unit){
   if(pts.length<2)return "";
   var W=320,H=120,L=36,R=12,T=18,B=22;
@@ -1144,7 +1151,7 @@ $("#bimp").addEventListener("change",function(ev){
 var API="https://script.google.com/macros/s/AKfycbzWFMKwAkGiNXmqgH6B5JstF_YruTtJunhRBbbREc7ErveZLurA5B95todV1qQO02gU/exec";
 var PKEY="treino.profile",SYNC_KEYS=["logs","cardio","body","bio","daily","goals","plan","done","cfg"];
 var prof=null;try{prof=JSON.parse(localStorage.getItem(PKEY))}catch(e){}
-var sync={st:prof?"idle":"off",msg:"",at:0,board:[],bt:0,timer:null};
+var sync={st:prof?"idle":"off",msg:"",at:0,board:[],bt:0,timer:null,dirty:false,seq:0};
 /* pontos: treino finalizado 50, 1 por série ✓ (máx. 40), proteína na meta 20, água na meta 10, cardio 10, bônus de sequência 5/dia (máx. 25) */
 var SC={treino:50,serie:1,serieMax:40,prot:20,agua:10,cardio:10,streak:5,streakMax:25,streakMin:30};
 function rawScore(d){
@@ -1163,32 +1170,84 @@ function streakAt(d){
 }
 function scoreObj(d){var r=rawScore(d),st=streakAt(d),bonus=r.pts>0?Math.min(SC.streakMax,st*SC.streak):0;return {d:d,pts:r.pts+bonus,det:r.det+(bonus?" B"+bonus:"")}}
 function post(o){return fetch(API,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(o)}).then(function(r){return r.json()})}
-function setSync(st,msg){sync.st=st;sync.msg=msg||"";if(st==="ok")sync.at=Date.now();if(curView==="placar")renderPlacar();if(curView==="contas")renderContas()}
+function setSync(st,msg){sync.st=st;sync.msg=msg||"";if(st==="ok")sync.at=Date.now();updSyncBar();if(curView==="placar")renderPlacar();if(curView==="contas")renderContas()}
+function updSyncBar(){
+  var el=$("#syncbar");if(!el)return;
+  var off=typeof navigator!=="undefined"&&navigator.onLine===false;
+  var show=!!prof&&sync.dirty&&(sync.st==="err"||off);
+  el.hidden=!show;
+  if(show)el.firstChild.textContent=off?"Sem internet. Suas alterações estão salvas no aparelho.":"Não sincronizou ainda. Suas alterações estão salvas no aparelho.";
+}
+/* compressão gzip do que vai para a planilha (cai uns 80%); se o navegador não tiver, vai texto puro */
+function b64(u){var r="",i;for(i=0;i<u.length;i+=8192)r+=String.fromCharCode.apply(null,u.subarray(i,i+8192));return btoa(r)}
+function pack(str){
+  if(typeof CompressionStream==="undefined"||typeof Response==="undefined")return Promise.resolve(str);
+  try{
+    var cs=new CompressionStream("gzip"),w=cs.writable.getWriter();w.write(new TextEncoder().encode(str));w.close();
+    return new Response(cs.readable).arrayBuffer().then(function(buf){var out="gz1:"+b64(new Uint8Array(buf));return out.length<str.length?out:str}).catch(function(){return str});
+  }catch(e){return Promise.resolve(str)}
+}
+function unpack(txt){
+  if(!txt||txt.indexOf("gz1:")!==0)return Promise.resolve(txt);
+  if(typeof DecompressionStream==="undefined")return Promise.reject(new Error("Este navegador não abre dados compactados. Atualize o iOS/Safari."));
+  var bin=atob(txt.slice(4)),u=new Uint8Array(bin.length);for(var i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);
+  var ds=new DecompressionStream("gzip"),w=ds.writable.getWriter();w.write(u);w.close();
+  return new Response(ds.readable).text();
+}
+/* junta local + remoto por registro (não perde o que foi feito em outro aparelho); em conflito vale o lado mais novo */
+function mergeState(L,R){
+  var rNew=(R.updatedAt||0)>(L.updatedAt||0),o={},k;
+  function win(a,b){return rNew?b:a}
+  function byD(a,b){var m={},out=[];(a||[]).concat(b||[]).forEach(function(x){m[x.d]=m[x.d]?win(m[x.d],x):x});
+    for(var d in m)out.push(m[d]);return out}
+  o.logs={};var ks={};for(k in (L.logs||{}))ks[k]=1;for(k in (R.logs||{}))ks[k]=1;
+  for(k in ks){var A=(L.logs||{})[k]||[],B=(R.logs||{})[k]||[],m={};
+    A.concat(B).forEach(function(x){m[x.d]=m[x.d]?win(m[x.d],x):x});
+    o.logs[k]=Object.keys(m).map(function(d){return m[d]})}
+  ["cardio","done","daily"].forEach(function(f){o[f]={};var a=L[f]||{},b=R[f]||{},k2;
+    for(k2 in a)o[f][k2]=a[k2];
+    for(k2 in b)o[f][k2]=(k2 in a)?win(a[k2],b[k2]):b[k2]});
+  o.body=byD(L.body,R.body);o.bio=byD(L.bio,R.bio);
+  ["plan","goals","cfg"].forEach(function(f){var n=rNew?R[f]:L[f],ot=rNew?L[f]:R[f];o[f]=(n!==undefined&&n!==null)?n:(ot!==undefined?ot:null)});
+  return o;
+}
 function schedPush(){if(!prof)return;clearTimeout(sync.timer);sync.timer=setTimeout(push,2500)}
 function push(){
   if(!prof)return Promise.resolve();
+  if(saveT)persist();
+  var pf=prof,snap=JSON.stringify(S),sc=scoreObj(today()),seq0=sync.seq,cd=curDate;
   setSync("syncing");
-  return post({a:"save",p:prof.id,pin:prof.pin,data:JSON.stringify(S),score:scoreObj(today())}).then(function(r){
+  return pack(snap).then(function(data){
+    return post({a:"save",p:pf.id,pin:pf.pin,data:data,score:sc})
+  }).then(function(r){
     if(!r.ok)throw new Error(r.erro||"erro");
-    if(curDate!==today())return post({a:"score",p:prof.id,pin:prof.pin,score:scoreObj(curDate)});
-  }).then(function(){setSync("ok")}).catch(function(e){setSync("err",String(e.message||e).indexOf("PIN")>=0?"PIN incorreto":"Sem conexão. Tenta de novo depois.")});
+    if(cd!==today())return post({a:"score",p:pf.id,pin:pf.pin,score:scoreObj(cd)});
+  }).then(function(){if(sync.seq===seq0)sync.dirty=false;setSync("ok")}).catch(function(e){setSync("err",String(e.message||e).indexOf("PIN")>=0?"PIN incorreto":"Sem conexão. Tenta de novo depois.")});
 }
 function applyRemote(remote){
   try{localStorage.setItem("treino.backup",JSON.stringify(S))}catch(e){}
-  SYNC_KEYS.forEach(function(k){if(remote[k]!==undefined)S[k]=remote[k]});
-  S.updatedAt=remote.updatedAt||Date.now();S.seeded=true;
-  try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}
-  editing=false;curDay=0;renderDay();renderProg();renderHoje();updHead();if($("#gk"))$("#gk").value=goalKg()?String(goalKg()).replace(".",","):"";
+  var m=mergeState(S,remote);
+  SYNC_KEYS.forEach(function(k){if(m[k]!==undefined)S[k]=m[k]});
+  S.updatedAt=Math.max(S.updatedAt||0,remote.updatedAt||0)||Date.now();S.seeded=true;
+  persist();
+  editing=false;renderDay();renderProg();renderHoje();updHead();if($("#gk"))$("#gk").value=goalKg()?String(goalKg()).replace(".",","):"";
 }
 function pull(){
   if(!prof)return Promise.resolve();
+  var pf=prof;
   setSync("syncing");
-  return post({a:"load",p:prof.id,pin:prof.pin}).then(function(r){
+  return post({a:"load",p:pf.id,pin:pf.pin}).then(function(r){
     if(!r.ok)throw new Error(r.erro||"erro");
-    var remote=null;try{remote=r.data?JSON.parse(r.data):null}catch(e){}
-    if(remote&&(remote.updatedAt||0)>(S.updatedAt||0))applyRemote(remote);
-    else return push();
-  }).then(function(){setSync("ok")}).catch(function(e){setSync("err",String(e.message||e).indexOf("PIN")>=0?"PIN incorreto":"Sem conexão.")});
+    return unpack(r.data||"");
+  }).then(function(txt){
+    if(!prof||prof.id!==pf.id)return;
+    var remote=null;try{remote=txt?JSON.parse(txt):null}catch(e){}
+    if(!remote)return push();
+    var had=sync.dirty;
+    applyRemote(remote);
+    // se o remoto já era igual ao resultado e nada local estava pendente, não precisa reenviar
+    if(had||JSON.stringify(S)!==txt)return push();
+  }).then(function(){setSync("ok")}).catch(function(e){setSync("err",String(e.message||e).indexOf("PIN")>=0?"PIN incorreto":(e&&e.message&&e.message.indexOf("compactados")>=0?e.message:"Sem conexão."))});
 }
 function fetchBoard(){
   if(!prof)return Promise.resolve();
@@ -1221,7 +1280,7 @@ function switchTo(id){
   var a=accs().filter(function(x){return x.id===id})[0];
   if(!a||(prof&&prof.id===id))return Promise.resolve();
   if(prof){push();snapAcc()}
-  var raw=null;try{raw=JSON.parse(localStorage.getItem("treino.acc."+id))}catch(e){}
+  sync.dirty=false;var raw=null;try{raw=JSON.parse(localStorage.getItem("treino.acc."+id))}catch(e){}
   blankS();if(raw)for(var k in S)if(raw[k]!==undefined)S[k]=raw[k];
   prof={id:a.id,name:a.name,pin:a.pin};
   try{localStorage.setItem(PKEY,JSON.stringify(prof));localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}
@@ -1272,6 +1331,7 @@ function doLogin(name,pin,tpl){
   return post({a:"login",p:id,pin:pin,nome:name.trim().slice(0,40)}).then(function(r){
     if(!r.ok)throw new Error(r.erro||"erro");
     if(!prof||prof.id!==id){ // troca de identidade: guarda a atual e começa limpo, nunca mistura dados
+      sync.dirty=false;
       if(prof){push();snapAcc()}
       else if(!accs().length&&hasData()){try{localStorage.setItem("treino.anon",JSON.stringify(S))}catch(e){}}
       var own=null;try{own=JSON.parse(localStorage.getItem("treino.acc."+id))}catch(e){}
@@ -1351,7 +1411,10 @@ document.addEventListener("click",function(ev){
   if(t.closest("#plref")){pull().then(fetchBoard)}
   if(t.closest("#plout")&&prof){removeAcc(prof.id)}
 });
-document.addEventListener("visibilitychange",function(){if(!document.hidden&&prof&&Date.now()-(sync.bt||0)>30000){pull().then(fetchBoard)}});
+window.addEventListener("online",function(){updSyncBar();if(prof&&sync.dirty)push()});
+window.addEventListener("offline",updSyncBar);
+document.addEventListener("click",function(ev){if(ev.target.closest("#syncretry"))push()});
+document.addEventListener("visibilitychange",function(){if(document.hidden&&saveT)persist();if(!document.hidden&&prof&&sync.dirty&&sync.st==="err")push();if(!document.hidden&&prof&&Date.now()-(sync.bt||0)>30000){pull().then(fetchBoard)}});
 
 /* ---------- aba Hoje ---------- */
 function daily(create){
