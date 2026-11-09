@@ -58,16 +58,17 @@ button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visi
 
 /* cartões */
 .card{background:var(--surface);border:1px solid var(--line);border-radius:22px;padding:16px;display:flex;flex-direction:column;gap:12px;min-width:0}
-.hero{border-radius:30px;padding:18px;gap:14px;background:linear-gradient(155deg,var(--tint1),transparent 52%),var(--surface);box-shadow:var(--shadow)}
-.hero-in{display:grid;grid-template-columns:minmax(0,160px) minmax(0,1fr);gap:16px;align-items:center}
+.hero{border-radius:26px;padding:14px;gap:8px;background:linear-gradient(155deg,var(--tint1),transparent 52%),var(--surface);box-shadow:var(--shadow)}
+.hero-in{display:grid;grid-template-columns:minmax(0,104px) minmax(0,1fr);gap:14px;align-items:center}
 .dial{width:100%;height:auto;display:block}
-.legend{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
+.legend{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:5px}
 .legend li{display:flex;flex-direction:column;line-height:1.1}
+.legend li{flex-direction:row!important;align-items:baseline;justify-content:space-between;gap:8px}
 .legend .lab{display:flex;align-items:center;gap:7px;color:var(--muted);font-size:.8rem;font-weight:600}
 .dot{width:9px;height:9px;border-radius:50%;display:inline-block}
-.legend b{font-family:var(--display);font-weight:600;font-size:1.9rem;font-variant-numeric:tabular-nums;letter-spacing:.01em}
+.legend b{font-family:var(--display);font-weight:600;font-size:1.35rem;font-variant-numeric:tabular-nums;letter-spacing:.01em}
 .legend small{font-family:var(--body);font-size:.85rem;color:var(--muted);font-weight:600;margin-left:3px}
-.hl{margin:0;color:var(--muted);font-size:.88rem}
+.hl{margin:0;color:var(--muted);font-size:.82rem}
 .hl b{color:var(--fg);font-weight:700}
 .tr{stroke:var(--line)}
 .r1{stroke:var(--c1)}.r2{stroke:var(--c2)}.r3{stroke:var(--c3)}
@@ -239,9 +240,14 @@ details.guide summary{color:var(--c3)}
 .hist .li b{font-family:var(--display);font-weight:600;font-size:1.15rem}
 .win{color:var(--c3)}
 .tabbar.five{grid-template-columns:repeat(5,1fr)}
-.tabbar.five button{font-size:.62rem}
+.tabbar.five button{font-size:.7rem;padding:8px 0}
 .syncbar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:8px 0 2px;padding:8px 12px;border-radius:16px;background:var(--surface);border:1px solid var(--c3);font-size:.82rem;font-weight:600}
 .syncbar span{min-width:0}
+.chips.one{flex-wrap:nowrap}
+.chips.one .btn{padding:0 12px;white-space:nowrap}
+.empty{display:flex;flex-direction:column;align-items:center;text-align:center;gap:12px;padding:44px 20px}
+.empty p{margin:0;max-width:30ch}
+.swmini{border:0;border-radius:999px;min-height:40px;padding:0 14px;background:var(--c1);color:var(--ink);font:700 .95rem var(--display);font-variant-numeric:tabular-nums;cursor:pointer}
 .av{width:22px;height:22px;border-radius:50%;border:1.8px solid currentColor;display:grid;place-items:center;font:700 .66rem var(--body);line-height:1}
 .av.big{width:56px;height:56px;border-width:2px;font-size:1.4rem;background:var(--tint1);color:var(--c1)}
 .seg.sub{grid-template-columns:repeat(2,1fr);margin-bottom:12px}
@@ -264,6 +270,7 @@ details.guide summary{color:var(--c3)}
       <p class="date" id="datel"></p>
     </div>
     <div style="display:flex;gap:8px;flex:none">
+    <button class="swmini" id="swmini" type="button" hidden aria-label="Cronômetro em andamento. Abrir"></button>
     <button class="round" id="mutebtn" type="button" aria-label="Som ligado" aria-pressed="false"></button>
     <button class="round" id="editbtn" type="button" aria-label="Editar treino" hidden>
       <svg viewBox="0 0 24 24"><path d="M4 20l4-1 10.5-10.5-3-3L5 16l-1 4z"/><path d="M14 6l3 3"/></svg>
@@ -561,7 +568,7 @@ function ensurePlan(){if(!S.plan||!S.plan.length)S.plan=JSON.parse(JSON.stringif
 function findEx(id){var D=getDays();for(var i=0;i<D.length;i++)for(var j=0;j<D[i].ex.length;j++)if(D[i].ex[j].id===id)return D[i].ex[j];return null}
 
 /* ---------- registros de treino ---------- */
-var curDate=today(),curDay=0,editing=false,curView="treino";
+var curDate=today(),curDay=0,editing=false,curView="treino",dateOpen=false;
 function hist(key){return (S.logs[key]||[]).slice().sort(byDate)}
 function entry(key,create){
   var a=S.logs[key];if(!a){if(!create)return null;a=S.logs[key]=[]}
@@ -687,9 +694,16 @@ function swShow(){
   $("#swarc").setAttribute("d",p>0.002?arcPath(130,130,116,0,Math.min(359.9,p*360)):"");
   $("#swm").textContent=sw.mode==="up"?"Livre":"Regressivo de "+mmss(sw.target);
   $("#swgo").textContent=sw.run?"Pausar":(ms>0&&!swEnded()?"Continuar":"Iniciar");
+  swMini();
   $("#swlap").hidden=sw.mode!=="up";
   $("#swpre").hidden=sw.mode!=="down";$("#swcus").hidden=sw.mode!=="down";
 }
+function swMini(){
+  var b=$("#swmini");if(!b)return;
+  var show=sw.run&&curView!=="cron";b.hidden=!show;
+  if(show){var ms=swElapsed(),v=sw.mode==="up"?ms:Math.max(0,sw.target-ms);b.textContent=mmss(v)}
+}
+$("#swmini").onclick=function(){showView("cron")};
 function swLaps(){
   $("#swlaps").innerHTML=sw.laps.slice().reverse().map(function(l,i){
     var n=sw.laps.length-i,prev=n>1?sw.laps[n-2]:0;
@@ -730,8 +744,9 @@ function updHead(){
     ti.textContent=editing?"Editar treino":d.t;
     dl.textContent=(d.home?"Em casa":"Dia "+d.k)+" · "+longDate(curDate)+(curDate!==today()?" (retroativo)":"");
   }else{
-    ti.textContent={progresso:"Progresso",hoje:"Hoje",placar:"Placar",cron:"Cronômetro",contas:"Perfil"}[curView];
-    dl.textContent=longDate(today());
+    var isP=curView==="placar"||curView==="contas";
+    ti.textContent=isP?"Perfil":{progresso:"Progresso",hoje:"Hoje",cron:"Cronômetro"}[curView];
+    dl.textContent=isP?(prof?prof.name+" · ":"")+(curView==="placar"?"Placar":"Contas"):longDate(today());
   }
   $("#editbtn").hidden=!(curView==="treino"&&!editing);
 }
@@ -812,7 +827,7 @@ function renderDay(){
   updHead();
   if(editing){renderEditor();return}
   var d=D[curDay];
-  $("#datebar").innerHTML='<label for="cd">Data do treino</label><input type="date" id="cd" max="'+t+'" value="'+curDate+'">'+(curDate!==t?'<button class="btn ghost sm" type="button" id="cdt">Voltar para hoje</button>':'');
+  $("#datebar").innerHTML=(curDate===t&&!dateOpen)?'<button class="btn ghost sm" type="button" id="cdopen">Registrar outro dia</button>':'<label for="cd">Data do treino</label><input type="date" id="cd" max="'+t+'" value="'+curDate+'">'+'<button class="btn ghost sm" type="button" id="cdt">Voltar para hoje</button>';
   renderHero();
   var h="";
   d.ex.forEach(function(ex){
@@ -920,7 +935,7 @@ $("#dtabs").addEventListener("click",function(ev){
 $("#datebar").addEventListener("change",function(ev){
   var t=ev.target;if(t.id==="cd"&&t.value&&t.value<=today()){curDate=t.value;renderDay()}
 });
-$("#datebar").addEventListener("click",function(ev){if(ev.target.closest("#cdt")){curDate=today();renderDay()}});
+$("#datebar").addEventListener("click",function(ev){if(ev.target.closest("#cdopen")){dateOpen=true;renderDay();return}if(ev.target.closest("#cdt")){curDate=today();dateOpen=false;renderDay()}});
 $("#day").addEventListener("input",function(ev){
   var t=ev.target;
   if(editing){if(t.dataset.e&&["dt","dc","n"].indexOf(t.dataset.e)>=0)editInput(t);return}
@@ -1360,7 +1375,7 @@ function weekOf(d){var t=parse(d),dow=(t.getDay()+6)%7;return iso(new Date(t.get
 function renderPlacar(){
   var box=$("#pldyn");if(!box)return;
   if(!prof){
-    box.innerHTML='<div class="card"><h3>Competição diária</h3><p class="note">Entre com seu perfil para competir pontos com a outra pessoa. Peso e medidas não aparecem no placar.</p><div class="chips"><button class="btn" type="button" data-goto="contas">Entrar ou criar perfil</button></div></div>';
+    box.innerHTML='<div class="card empty"><span class="av big" aria-hidden="true">•</span><h3>Competição diária</h3><p class="note">Entre com seu nome para competir pontos com a outra pessoa. Peso e medidas não aparecem no placar.</p><button class="btn" type="button" data-goto="contas">Entrar ou criar perfil</button></div>';
     return;
   }
   var t=today(),mine=scoreObj(t),rows=sync.board.filter(function(r){return r.p!==prof.id});
@@ -1425,12 +1440,12 @@ function renderHoje(){
   var days=[],n=new Date();
   for(var i=0;i<7;i++){var k=iso(new Date(n.getFullYear(),n.getMonth(),n.getDate()-i));if(S.daily[k]&&sum(S.daily[k].p)>0)days.push(sum(S.daily[k].p))}
   var avg=days.length?Math.round(sum(days)/days.length):null;
-  var h='<div class="card"><h3>Proteína de hoje</h3><div class="split">'+miniRing(p/g.prot,"r3",Math.round(Math.min(1,p/g.prot)*100)+"%")+'<div><p class="big">'+p+' <small>g de '+g.prot+' g</small></p><p class="note">'+(cfg().sex==='f'?'Meta inicial. Ajuste com sua nutricionista.':'Faixa recomendada: 145-180 g.')+'</p></div></div>'+
-    '<div class="chips">'+[10,20,30].map(function(v){return '<button class="btn sm" type="button" data-add="p:'+v+'">+'+v+' g</button>'}).join("")+'<button class="btn ghost sm" type="button" data-undo="p">Desfazer</button></div>'+
+  var h='<div class="card"><h3>Proteína de hoje</h3><div class="split">'+miniRing(p/g.prot,"r3",Math.round(Math.min(1,p/g.prot)*100)+"%")+'<div><p class="big">'+p+' <small>g de '+g.prot+' g</small></p><p class="note">'+(cfg().sex==='f'?'Meta inicial. Ajuste com sua nutricionista.':'Faixa: 145-180 g')+'</p></div></div>'+
+    '<div class="chips one">'+[10,20,30].map(function(v){return '<button class="btn sm" type="button" data-add="p:'+v+'">+'+v+' g</button>'}).join("")+'<button class="btn ghost sm" type="button" data-undo="p">Desfazer</button></div>'+
     '<div class="row"><label for="cp">Outro valor (g)<input type="text" id="cp" inputmode="numeric" placeholder="ex.: 35"></label><button class="btn sm" type="button" data-addc="p">Adicionar</button></div>'+
     (avg!=null?'<p class="note">Média dos dias registrados nos últimos 7 dias: '+avg+' g.</p>':'')+'</div>';
   h+='<div class="card"><h3>Água de hoje</h3><div class="split">'+miniRing(w/g.water,"r2",Math.round(Math.min(1,w/g.water)*100)+"%")+'<div><p class="big">'+fmt(w/1000,2)+' <small>L de '+fmt(g.water/1000,1)+' L</small></p></div></div>'+
-    '<div class="chips">'+[250,500].map(function(v){return '<button class="btn sm" type="button" data-add="w:'+v+'">+'+v+' ml</button>'}).join("")+'<button class="btn ghost sm" type="button" data-undo="w">Desfazer</button></div>'+
+    '<div class="chips one">'+[250,500].map(function(v){return '<button class="btn sm" type="button" data-add="w:'+v+'">+'+v+' ml</button>'}).join("")+'<button class="btn ghost sm" type="button" data-undo="w">Desfazer</button></div>'+
     (cfg().tirz?'<p class="note">Com a tirzepatida a sede diminui. Beba mesmo sem sentir vontade.</p>':'')+'</div>';
   h+='<div class="card"><h3>Metas do dia</h3><div class="row"><label for="gp">Proteína (g)<input type="number" id="gp" inputmode="numeric" min="50" max="400" value="'+g.prot+'"></label><label for="gw">Água (ml)<input type="number" id="gw" inputmode="numeric" min="500" max="8000" step="250" value="'+g.water+'"></label></div><p class="note">A meta de água de 3 L é um ponto de partida. Ajuste com seu médico ou nutricionista.</p></div>';
   $("#hdyn").innerHTML=h;
@@ -1461,6 +1476,7 @@ function showView(n){
   if(n==="treino")renderDay();
   if(n==="progresso")renderProg();if(n==="hoje")renderHoje();
   if(n==="contas")renderContas();
+  if(typeof swMini==="function")swMini();
   if(n==="placar"){renderPlacar();if(prof&&Date.now()-(sync.bt||0)>8000)fetchBoard()}
   updHead();
   try{history.replaceState(null,"","#"+n)}catch(e){}
