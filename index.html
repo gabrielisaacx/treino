@@ -248,6 +248,48 @@ details.guide summary{color:var(--c3)}
 .empty{display:flex;flex-direction:column;align-items:center;text-align:center;gap:12px;padding:44px 20px}
 .empty p{margin:0;max-width:30ch}
 .swmini{border:0;border-radius:999px;min-height:40px;padding:0 14px;background:var(--c1);color:var(--ink);font:700 .95rem var(--display);font-variant-numeric:tabular-nums;cursor:pointer}
+/* cor de destaque por aba */
+body[data-view=hoje]{--c1:#f5b04c;--tint1:rgba(245,176,76,.14);--ink:#2a1a00}
+body[data-view=progresso]{--c1:#8b9cff;--tint1:rgba(139,156,255,.14);--ink:#0b1033}
+body[data-view=cron]{--c1:#ff8a73;--tint1:rgba(255,138,115,.14);--ink:#2c0d06}
+body[data-view=perfil]{--c1:#c59bff;--tint1:rgba(197,155,255,.14);--ink:#1d0b33}
+@media (prefers-color-scheme: light){
+:root:not([data-theme="dark"]) body[data-view=hoje]{--c1:#a86800;--tint1:rgba(168,104,0,.12);--ink:#fff}
+:root:not([data-theme="dark"]) body[data-view=progresso]{--c1:#4559db;--tint1:rgba(69,89,219,.11);--ink:#fff}
+:root:not([data-theme="dark"]) body[data-view=cron]{--c1:#c8401f;--tint1:rgba(200,64,31,.1);--ink:#fff}
+:root:not([data-theme="dark"]) body[data-view=perfil]{--c1:#7440c8;--tint1:rgba(116,64,200,.1);--ink:#fff}}
+/* Treino: barra de progresso fixa, exercício concluído recolhido */
+.pbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:25;height:34px;border-radius:17px;background:var(--glass);-webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px);border:1px solid var(--line);overflow:hidden;display:flex;align-items:center;justify-content:center}
+.pbar[hidden]{display:none}
+.pbar i{position:absolute;left:0;top:0;bottom:0;width:0;background:var(--tint1);transition:width .3s}
+.pbar span{position:relative;font-weight:700;font-size:.82rem}
+.ex.done:not(.open)>*:not(.exh){display:none}
+.ex.done .name::before{content:"✓ ";color:var(--c1)}
+.ex.done .exh{cursor:pointer}
+@keyframes xpop{0%{transform:scale(1)}45%{transform:scale(1.35)}100%{transform:scale(1)}}
+@media (prefers-reduced-motion:no-preference){.xr.pop{animation:xpop .6s ease-out}}
+/* Progresso: botão principal, folha de registro, "Mais" */
+.fab{min-height:54px;font-size:1.05rem}
+.more>summary{cursor:pointer;font-weight:700;list-style:none}
+.more>summary::-webkit-details-marker{display:none}
+.more[open]>summary{margin-bottom:12px}
+.more h3{margin:18px 0 8px}
+.sheet{position:fixed;inset:0;z-index:70;display:none;align-items:flex-end;justify-content:center}
+.sheet:not([hidden]){display:flex}
+.sheet-bg{position:absolute;inset:0;background:rgba(0,0,0,.5)}
+.sheet-in{position:relative;width:min(100%,560px);border-radius:26px 26px 0 0;padding-bottom:calc(20px + env(safe-area-inset-bottom,0px));max-height:92vh;overflow:auto}
+.toast{width:max-content;max-width:calc(100% - 32px);text-align:center;position:fixed;z-index:80;left:50%;transform:translateX(-50%);top:calc(14px + env(safe-area-inset-top,0px));background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:999px;font-weight:700;font-size:.9rem;box-shadow:var(--shadow)}
+.toast[hidden]{display:none}
+/* Cronômetro: relógio menor, botões grandes */
+.swd{width:min(100%,210px)!important}
+.swt{font-size:3rem!important}
+.swbtn{width:100%}
+.swbtn #swgo{flex:1 1 100%;min-height:64px;font-size:1.2rem}
+.swbtn .btn.ghost{flex:1;min-height:52px}
+.swc .chips{width:100%}
+.foot{font-size:.72rem;opacity:.8}
+#bform{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+#bform label:first-child,#bform .btn{grid-column:1/-1}
 .av{width:22px;height:22px;border-radius:50%;border:1.8px solid currentColor;display:grid;place-items:center;font:700 .66rem var(--body);line-height:1}
 .av.big{width:56px;height:56px;border-width:2px;font-size:1.4rem;background:var(--tint1);color:var(--c1)}
 .seg.sub{grid-template-columns:repeat(2,1fr);margin-bottom:12px}
@@ -281,6 +323,7 @@ details.guide summary{color:var(--c3)}
 
   <!-- TREINO -->
   <section id="v-treino" class="view">
+    <div class="pbar" id="pbar" hidden><i id="pbi"></i><span id="pbt"></span></div>
     <div class="card hero" id="hero"></div>
     <div class="seg" role="tablist" id="dtabs"></div>
     <div class="datebar" id="datebar"></div>
@@ -289,23 +332,16 @@ details.guide summary{color:var(--c3)}
 
   <!-- PROGRESSO -->
   <section id="v-progresso" class="view" hidden>
-    <div class="card">
-      <h3>Registrar medidas</h3>
-      <form id="bform" class="row">
-        <label for="bd">Data<input type="date" id="bd"></label>
-        <label for="bk">Peso (kg)<input type="text" id="bk" inputmode="decimal" placeholder="91,4"></label>
-        <label for="bw">Cintura (cm)<input type="text" id="bw" inputmode="decimal" placeholder="opcional"></label>
-        <button class="btn" type="submit">Salvar</button>
-      </form>
-      <p class="note" id="bmsg" role="status"></p>
+    <div id="pdyn" class="view"></div>
+    <button class="btn fab" id="wopen" type="button">+ Registrar peso</button>
+    <div id="odyn" class="view"></div>
+    <div class="card"><h3>Histórico de medidas</h3><div class="list" id="phist"></div></div>
+    <details class="card more"><summary>Mais: meta, bioimpedância e backup</summary>
       <form id="gform" class="row">
         <label for="gk">Minha meta de peso (kg)<input type="text" id="gk" inputmode="decimal" placeholder="opcional"></label>
         <button class="btn ghost" type="submit">Salvar meta</button>
       </form>
       <p class="note" id="gmsg" role="status"></p>
-    </div>
-    <div id="pdyn" class="view"></div>
-    <div class="card">
       <h3>Registrar bioimpedância</h3>
       <form id="oform" class="row">
         <label for="od">Data<input type="date" id="od"></label>
@@ -317,10 +353,6 @@ details.guide summary{color:var(--c3)}
         <button class="btn" type="submit">Salvar</button>
       </form>
       <p class="note" id="omsg" role="status"></p>
-    </div>
-    <div id="odyn" class="view"></div>
-    <div class="card"><h3>Histórico de medidas</h3><div class="list" id="phist"></div></div>
-    <div class="card">
       <h3>Backup dos dados</h3>
       <p class="note">Os dados ficam só neste aparelho. Exporte de vez em quando para não perder se trocar de celular ou limpar o navegador.</p>
       <div class="chips">
@@ -329,6 +361,20 @@ details.guide summary{color:var(--c3)}
         <input type="file" id="bimp" accept="application/json,.json" hidden>
       </div>
       <p class="note" id="bkmsg" role="status"></p>
+    </details>
+    <div class="sheet" id="wsheet" hidden role="dialog" aria-modal="true" aria-label="Registrar peso">
+      <div class="sheet-bg" data-sheetclose></div>
+      <div class="sheet-in card">
+        <h3>Registrar peso</h3>
+        <form id="bform" class="row">
+          <label for="bd">Data<input type="date" id="bd"></label>
+          <label for="bk">Peso (kg)<input type="text" id="bk" inputmode="decimal" placeholder="91,4"></label>
+          <label for="bw">Cintura (cm)<input type="text" id="bw" inputmode="decimal" placeholder="opcional"></label>
+          <button class="btn" type="submit">Salvar</button>
+        </form>
+        <p class="note" id="bmsg" role="status"></p>
+        <button class="btn ghost" type="button" data-sheetclose>Fechar</button>
+      </div>
     </div>
   </section>
 
@@ -358,7 +404,13 @@ details.guide summary{color:var(--c3)}
         <svg viewBox="0 0 260 260" aria-hidden="true"><circle class="tr" cx="130" cy="130" r="116" stroke-width="12"/><path id="swarc" class="r1" d="" stroke-width="12"/></svg>
         <div class="tm"><div class="swt" id="swt" role="timer" aria-live="off">00:00.0</div><div class="swm" id="swm">Livre</div></div>
       </div>
-      <div class="chips" id="swpre" hidden>
+      <div class="chips swbtn">
+        <button class="btn" type="button" id="swgo">Iniciar</button>
+        <button class="btn ghost" type="button" id="swlap">Volta</button>
+        <button class="btn ghost" type="button" id="swrst">Zerar</button>
+      </div>
+      <p class="note" style="margin:0;text-align:center">Contagem regressiva rápida (inicia ao tocar)</p>
+      <div class="chips" id="swpre">
         <button class="btn sm ghost" type="button" data-sp="30" aria-pressed="false">30 s</button>
         <button class="btn sm ghost" type="button" data-sp="45" aria-pressed="false">45 s</button>
         <button class="btn sm ghost" type="button" data-sp="60" aria-pressed="true">1 min</button>
@@ -370,21 +422,18 @@ details.guide summary{color:var(--c3)}
         <label for="swc">Outro tempo (segundos)<input type="number" id="swc" inputmode="numeric" min="5" max="3600" placeholder="ex.: 75"></label>
         <button class="btn ghost sm" type="button" id="swset">Definir</button>
       </div>
-      <div class="chips">
-        <button class="btn" type="button" id="swgo">Iniciar</button>
-        <button class="btn ghost" type="button" id="swlap">Volta</button>
-        <button class="btn ghost" type="button" id="swrst">Zerar</button>
-      </div>
+
       <div class="list" id="swlaps"></div>
     </div>
     <p class="note">O descanso entre as séries dispara sozinho quando você marca o ✓ no treino.</p>
   </section>
 
-  <p class="foot">Fotos dos exercícios: free-exercise-db (domínio público). Dados salvos neste aparelho. No celular, use "Adicionar à tela inicial" para abrir como app, inclusive sem internet.</p>
+  <p class="foot" id="foot" hidden>Fotos dos exercícios: free-exercise-db (domínio público). Os dados ficam neste aparelho e, se você entrar com um perfil, também na planilha. Use "Adicionar à tela inicial" para abrir como app, inclusive sem internet.</p>
 </div>
 
 <div class="fin" id="fin" hidden role="dialog" aria-modal="true" aria-labelledby="fint"></div>
 
+<div class="toast" id="toast" role="status" hidden></div>
 <div class="timer" id="timer" hidden role="timer" aria-live="off">
   <div><small>Descanso</small><br><b id="tleft">00:00</b></div>
   <div class="chips"><button class="btn" id="tplus" type="button">+30 s</button><button class="btn" id="tstop" type="button">Parar</button></div>
@@ -696,7 +745,7 @@ function swShow(){
   $("#swgo").textContent=sw.run?"Pausar":(ms>0&&!swEnded()?"Continuar":"Iniciar");
   swMini();
   $("#swlap").hidden=sw.mode!=="up";
-  $("#swpre").hidden=sw.mode!=="down";$("#swcus").hidden=sw.mode!=="down";
+  $("#swcus").hidden=sw.mode!=="down";
 }
 function swMini(){
   var b=$("#swmini");if(!b)return;
@@ -726,7 +775,10 @@ $("#sw").addEventListener("click",function(ev){
     [].forEach.call(document.querySelectorAll("[data-swm]"),function(b){var on=b===m;b.setAttribute("aria-pressed",on);b.classList.toggle("ghost",!on)});
     swReset();
   }
-  if(p)setTarget(+p.dataset.sp);
+  if(p){
+    if(sw.mode!=="down"){sw.mode="down";[].forEach.call(document.querySelectorAll("[data-swm]"),function(bb){var on=bb.dataset.swm==="down";bb.setAttribute("aria-pressed",on);bb.classList.toggle("ghost",!on)})}
+    setTarget(+p.dataset.sp);if(!sw.run)$("#swgo").click();
+  }
 });
 function setTarget(sec){
   sw.target=sec*1000;
@@ -736,6 +788,9 @@ function setTarget(sec){
 $("#swset").onclick=function(){var v=num($("#swc").value);if(v&&v>=5&&v<=3600)setTarget(Math.round(v))};
 swShow();
 
+if(typeof IntersectionObserver!=="undefined"){
+  new IntersectionObserver(function(en){var vis=en[0].isIntersecting;$("#pbar").hidden=vis||editing||curView!=="treino"}).observe($("#hero"));
+}
 /* ---------- cabeçalho ---------- */
 function updHead(){
   var ti=$("#title"),dl=$("#datel");
@@ -765,7 +820,7 @@ function sugMsg(){
   return "Sugestão de hoje: Dia "+D[sd.di].k+" (ponto laranja). O último foi o Dia "+D[sd.l.di].k+", em "+br(sd.l.d)+".";
 }
 function renderHero(){
-  var el=$("#hero");if(!el||editing)return;
+  var el=$("#hero");if(!el||editing)return;updPbar();
   var D=getDays(),d=D[curDay],n=0;
   d.ex.forEach(function(ex){if(hasReps(entry(ex.id,false)))n++});
   var wk=Math.min(weekCount(),mainN()),prot=sum(daily(false).p),goal=S.goals.prot;
@@ -783,6 +838,12 @@ function renderHero(){
     '<p class="hl">'+sugMsg()+(cardio?' Cardio feito.':'')+'</p>'+(wl?'<p class="hl">'+wl+'</p>':'');
 }
 var heroRaf=0;
+function updPbar(){
+  var d=getDays()[curDay],n=0;if(!d)return;
+  d.ex.forEach(function(ex){var e=entry(ex.id,false);if(e&&ex.s>0&&e.sets.slice(0,ex.s).filter(function(x){return x&&x[2]}).length>=ex.s)n++});
+  $("#pbi").style.width=(d.ex.length?Math.round(n/d.ex.length*100):0)+"%";
+  $("#pbt").textContent="Exercícios "+n+" de "+d.ex.length;
+}
 function updProg(){if(editing||heroRaf)return;heroRaf=(window.requestAnimationFrame||setTimeout)(function(){heroRaf=0;renderHero()})}
 function mini(pts,unit){
   if(pts.length<2)return "";
@@ -834,7 +895,7 @@ function renderDay(){
     var key=ex.id,e=entry(key,false),hn=hint(ex),u=ex.u==="s";
     var isNew=ex.nw&&!(S.logs[key]&&S.logs[key].length);
     var nd=e?e.sets.slice(0,ex.s).filter(function(x){return x&&x[2]}).length:0;
-    h+='<article class="card ex"><div class="exh"><div class="name">'+esc(ex.n)+(isNew?'<span class="badge">novo</span>':'')+'<div class="meta">'+(GUIDE[ex.n]?esc(GUIDE[ex.n].m)+' · ':'')+restTxt(ex)+'</div></div><div class="exr"><div class="scheme">'+scheme(ex)+'</div><div class="xr" data-xr="'+key+'">'+xringHtml(nd,ex.s)+'</div></div></div>';
+    h+='<article class="card ex'+(nd>=ex.s&&ex.s>0?' done':'')+'"><div class="exh"><div class="name">'+esc(ex.n)+(isNew?'<span class="badge">novo</span>':'')+'<div class="meta">'+(GUIDE[ex.n]?esc(GUIDE[ex.n].m)+' · ':'')+restTxt(ex)+'</div></div><div class="exr"><div class="scheme">'+scheme(ex)+'</div><div class="xr" data-xr="'+key+'">'+xringHtml(nd,ex.s)+'</div></div></div>';
     h+=guideHtml(ex);
     h+='<p class="hint">'+hn.last+'</p>';
     if(hn.sug)h+='<p class="sug">'+hn.sug+'</p>';
@@ -970,14 +1031,27 @@ $("#day").addEventListener("click",function(ev){
   if((b=t.closest("[data-ok]"))){
     var e=entry(b.dataset.k,true),i2=+b.dataset.i;
     var s=e.sets[i2]=e.sets[i2]||[null,null,0];
-    s[2]=s[2]?0:1;save();
+    s[2]=s[2]?0:1;
+    var ex=findEx(b.dataset.k),card=b.closest(".ex");
+    if(s[2]&&s[0]==null&&s[1]==null&&ex){ // ✓ sem digitar: usa o que foi feito da última vez
+      var pv=hint(ex).prev,ps=pv&&pv.sets[i2];
+      if(ps&&ps[1]){s[0]=ps[0]||null;s[1]=ps[1];
+        [].forEach.call(card.querySelectorAll("input[data-k=\""+b.dataset.k+"\"][data-i=\""+i2+"\"]"),function(inp){var f=+inp.dataset.f;inp.value=s[f]!=null?(f===0?kgs(s[0]):s[1]):""})}
+    }
+    save();
     b.classList.toggle("on",!!s[2]);b.setAttribute("aria-pressed",!!s[2]);
-    var ex=findEx(b.dataset.k),xr=b.closest(".ex").querySelector(".xr");
-    if(ex&&xr)xr.innerHTML=xringHtml(e.sets.slice(0,ex.s).filter(function(x){return x&&x[2]}).length,ex.s);
+    var xr=card.querySelector(".xr"),nDone=ex?e.sets.slice(0,ex.s).filter(function(x){return x&&x[2]}).length:0;
+    if(ex&&xr)xr.innerHTML=xringHtml(nDone,ex.s);
+    if(ex){var fin=nDone>=ex.s;card.classList.toggle("done",fin);card.classList.remove("open");
+      if(fin&&s[2]){xr&&xr.classList.add("pop");setTimeout(function(){xr&&xr.classList.remove("pop")},700);
+        var nx=card.nextElementSibling;while(nx&&!(nx.classList&&nx.classList.contains("ex")&&!nx.classList.contains("done")))nx=nx.nextElementSibling;
+        if(nx)setTimeout(function(){try{nx.scrollIntoView({behavior:"smooth",block:"center"})}catch(e){}},450)}}
+    updProg();
     if(s[2])sfx("pop");
     if(s[2]&&curDate===today())startTimer(+b.dataset.rest);
     return;
   }
+  if((b=t.closest(".ex.done .exh"))){b.parentNode.classList.toggle("open");return}
   if((b=t.closest("[data-clr]"))){
     var k=b.dataset.clr;S.logs[k]=(S.logs[k]||[]).filter(function(x){return x.d!==curDate});save();renderDay();return;
   }
@@ -1034,7 +1108,7 @@ function alerts(){
 }
 function renderProg(){
   var b=bodySorted(),box=$("#pdyn");
-  if(!b.length){box.innerHTML='<div class="card"><p class="note">Nenhuma medida ainda. Registre seu peso acima para ver o gráfico, o ritmo e '+(goalKg()?'a projeção até os '+goalKg()+' kg.':'a evolução. Defina sua meta de peso abaixo.')+'</p></div>';renderHist();renderBio();return}
+  if(!b.length){box.innerHTML='<div class="card"><p class="note">Sem medidas ainda. Toque em <b>+ Registrar peso</b> (ex.: 91,4 kg) para ver o gráfico, o ritmo e '+(goalKg()?'a projeção até os '+goalKg()+' kg.':'a evolução. Defina sua meta em "Mais".')+'</p></div>';renderHist();renderBio();return}
   var first=b[0],last=b[b.length-1],r=rate(b),pd=projDate(last,r);
   var lost=first.kg-last.kg,pct=lost/first.kg*100,left=goalKg()?Math.max(0,last.kg-goalKg()):0;
   var w7=b.filter(function(x){return dayDiff(x.d,last.d)<=6}),avg7=sum(w7.map(function(x){return x.kg}))/w7.length;
@@ -1068,7 +1142,7 @@ function renderHist(){
   var b=bodySorted().reverse();
   $("#phist").innerHTML=b.length?b.map(function(x){
     return '<div class="li"><span>'+brFull(parse(x.d))+' · <b>'+fmt(x.kg,1)+' kg</b>'+(x.w?' · cintura '+fmt(x.w,1)+' cm':'')+'</span><button class="del" type="button" data-del="'+x.d+'" aria-label="Apagar medida de '+br(x.d)+'">×</button></div>';
-  }).join(""):'<p class="note">Sem medidas.</p>';
+  }).join(""):'<p class="note">Quando você registrar o peso, o histórico aparece aqui.</p>';
 }
 function weightFor(e){
   if(e.kg)return e.kg;
@@ -1105,6 +1179,13 @@ function renderBio(){
   }).join("")+'</div></div>';
   box.innerHTML=h;
 }
+function openSheet(){var sh=$("#wsheet");sh.hidden=false;$("#bd").value=today();setTimeout(function(){try{$("#bk").focus()}catch(e){}},50)}
+function closeSheet(){$("#wsheet").hidden=true}
+var toastT=null;
+function toast(msg){var t=$("#toast");t.textContent=msg;t.hidden=false;clearTimeout(toastT);toastT=setTimeout(function(){t.hidden=true},2400)}
+$("#wopen").onclick=openSheet;
+$("#wsheet").addEventListener("click",function(ev){if(ev.target.closest("[data-sheetclose]"))closeSheet()});
+document.addEventListener("keydown",function(ev){if(ev.key==="Escape")closeSheet()});
 $("#bd").value=today();$("#od").value=today();
 $("#bform").addEventListener("submit",function(ev){
   ev.preventDefault();
@@ -1112,7 +1193,7 @@ $("#bform").addEventListener("submit",function(ev){
   if(!d||kg==null||kg<30||kg>300){m.textContent="Informe uma data e um peso válido (em kg).";return}
   var ex=S.body.filter(function(x){return x.d===d})[0];
   if(ex){ex.kg=kg;if(w!=null)ex.w=w}else{var o={d:d,kg:kg};if(w!=null)o.w=w;S.body.push(o)}
-  save();$("#bk").value="";$("#bw").value="";m.textContent="Salvo: "+fmt(kg,1)+" kg em "+br(d)+".";renderProg();
+  save();$("#bk").value="";$("#bw").value="";m.textContent="";closeSheet();toast("Peso salvo: "+fmt(kg,1)+" kg em "+br(d));renderProg();
 });
 $("#gk").value=goalKg()?String(goalKg()).replace(".",","):"";
 $("#gform").addEventListener("submit",function(ev){
@@ -1477,6 +1558,9 @@ function showView(n){
   if(n==="progresso")renderProg();if(n==="hoje")renderHoje();
   if(n==="contas")renderContas();
   if(typeof swMini==="function")swMini();
+  $("#foot").hidden=SUBS.indexOf(n)<0;
+  document.body.setAttribute("data-view",SUBS.indexOf(n)>=0?"perfil":n);
+  if(n!=="treino"||typeof IntersectionObserver==="undefined")$("#pbar").hidden=true;
   if(n==="placar"){renderPlacar();if(prof&&Date.now()-(sync.bt||0)>8000)fetchBoard()}
   updHead();
   try{history.replaceState(null,"","#"+n)}catch(e){}
