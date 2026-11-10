@@ -259,7 +259,7 @@ body[data-view=perfil]{--c1:#c59bff;--tint1:rgba(197,155,255,.14);--ink:#1d0b33}
 :root:not([data-theme="dark"]) body[data-view=cron]{--c1:#c8401f;--tint1:rgba(200,64,31,.1);--ink:#fff}
 :root:not([data-theme="dark"]) body[data-view=perfil]{--c1:#7440c8;--tint1:rgba(116,64,200,.1);--ink:#fff}}
 /* Treino: barra de progresso fixa, exercício concluído recolhido */
-.pbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:25;height:34px;border-radius:17px;background:var(--glass);-webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px);border:1px solid var(--line);overflow:hidden;display:flex;align-items:center;justify-content:center}
+.pbar{position:fixed;z-index:25;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top,0px) + 6px);width:min(calc(100% - 32px),520px);height:34px;border-radius:17px;background:var(--surface);border:1px solid var(--line);box-shadow:var(--shadow);overflow:hidden;display:flex;align-items:center;justify-content:center}
 .pbar[hidden]{display:none}
 .pbar i{position:absolute;left:0;top:0;bottom:0;width:0;background:var(--tint1);transition:width .3s}
 .pbar span{position:relative;font-weight:700;font-size:.82rem}
